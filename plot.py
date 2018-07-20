@@ -9,7 +9,7 @@ def main():
     raw_data = get_raw_data()
 
     relevant_rows = [row for row in raw_data
-                     if (row['kind'] == 'nightly-l10n' and
+                     if ('beetmover' in row['kind'] and #row['kind'] == 'nightly-l10n' and
                          'esr' not in row['version'] and
                          'devedition' not in row['build_platform'] and
                          'android' not in row['build_platform'] and
@@ -20,13 +20,24 @@ def main():
                          True)]
     data = []
     platforms = get_platforms(relevant_rows)
-    for platform in sorted(platforms):
+    if 0:
+        platforms = get_platforms(relevant_rows)
+        for platform in sorted(platforms):
+            data_line = go.Box(
+                #y=get_runtime_totals_per_locale(relevant_rows, platform),
+                y=get_runtime_totals_per_task(relevant_rows, platform),
+                #x=get_versions_per_locale(relevant_rows, platform),
+                x=get_versions_per_task(relevant_rows, platform),
+                name=platform
+            )
+            data.append(data_line)
+    for kind in sorted(set([row['kind'] for row in relevant_rows])):
         data_line = go.Box(
-            y=get_runtime_totals_per_locale(relevant_rows, platform),
-            #y=get_runtime_totals_per_task(relevant_rows, platform),
-            x=get_versions_per_locale(relevant_rows, platform),
-            #x=get_versions_per_task(relevant_rows, platform),
-            name=platform
+                #y=get_runtime_totals_per_locale(relevant_rows, platform),
+                y=get_runtime_totals_per_task_beet(relevant_rows, kind),
+                #x=get_versions_per_locale(relevant_rows, platform),
+                x=get_versions_per_task_beet(relevant_rows, kind),
+                name=kind
         )
         data.append(data_line)
     layout = {
@@ -40,7 +51,7 @@ def main():
         'boxmode': 'group',
     }
     fig = go.Figure(data=data, layout=layout)
-    py.plot(fig, filename="desktop_l10n_duration_per_locale")
+    py.plot(fig, filename="beetmover_release_task_times")
 
 
 def get_runtime_totals_per_locale(rows, platform):
@@ -96,6 +107,30 @@ def get_runtime_totals_per_task(rows, platform):
     ]
 
 
+def get_runtime_totals_per_task_beet(rows, kind):
+    fmt = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+    def _filter(row):
+        if (row.get('started') and row['state'] == 'completed' and
+                row['kind'] == kind):
+            return True
+        return False
+
+    _seen = set()
+    def _saw(row):
+        nonlocal _seen
+        if row['taskid'] in _seen:
+            return True
+        _seen |= {row['taskid']}
+        return False
+
+    return [
+        ((datetime.strptime(row['resolved'], fmt) -
+          datetime.strptime(row['started'], fmt)).total_seconds()
+          )
+        for row in rows
+        if _filter(row) and (not _saw(row))
+    ]
 
 def get_versions_per_locale(rows, platform):
     return [
@@ -118,6 +153,23 @@ def get_versions_per_task(rows, platform):
         normalize_version(row['version']) for row in rows
         if (row.get('started') and row['state'] == 'completed' and
             normalize_platform(row['build_platform']) == platform and
+            not _saw(row))
+    ]
+
+
+def get_versions_per_task_beet(rows, kind):
+    _seen = set()
+    def _saw(row):
+        nonlocal _seen
+        if row['taskid'] in _seen:
+            return True
+        _seen |= {row['taskid']}
+        return False
+
+    return [
+        normalize_version(row['version']) for row in rows
+        if (row.get('started') and row['state'] == 'completed' and
+            row['kind'] == kind and
             not _saw(row))
     ]
 

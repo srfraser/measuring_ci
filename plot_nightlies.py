@@ -2,8 +2,8 @@ import csv
 from datetime import datetime
 
 import pandas as pd
-import plotly.offline as py
-#import plotly.plotly as py
+#import plotly.offline as py
+import plotly.plotly as py
 import plotly.graph_objs as go
 
 
@@ -14,6 +14,7 @@ def main():
         (raw_data['kind'] == 'nightly-l10n') &
         (~raw_data['build_platform'].str.contains('devedition')) &
         (~raw_data['build_platform'].str.contains('android')) &
+        (raw_data['build_platform'].str.contains('win')) &
         # (raw_data['build_platform'].str.contains('win64')) &
         True
     ]
@@ -23,11 +24,11 @@ def main():
     for platform in sorted(platforms):
         relevant_rows.sort_values(by='date', inplace=True)
         data_line = go.Box(
-            y=get_runtime_totals_per_locale(relevant_rows, platform),
-            #y=get_runtime_totals_per_task(relevant_rows, platform),
+            #y=get_runtime_totals_per_locale(relevant_rows, platform),
+            y=get_runtime_totals_per_task(relevant_rows, platform),
             #x=get_weeks_per_locale(relevant_rows, platform),
-            #x=get_weeks_per_task(relevant_rows, platform),
-            x=get_days_per_locale(relevant_rows, platform),
+            x=get_weeks_per_task(relevant_rows, platform),
+            #x=get_days_per_locale(relevant_rows, platform),
             #x=get_days_per_task(relevant_rows, platform),
             name=platform
         )
@@ -64,7 +65,7 @@ def main():
     #)
 
     fig = go.Figure(data=data, layout=layout)
-    py.plot(fig, filename="desktop_l10n_duration_nightlies_per_locale_april")
+    py.plot(fig, filename="win_desktop_l10n_duration_nightlies_per_task")
 
 
 def add_gecko_values(layout):

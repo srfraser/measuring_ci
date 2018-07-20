@@ -10,7 +10,9 @@ import aiohttp
 #import taskcluster
 import taskcluster.async as taskcluster
 
-logging.basicConfig(level=logging.DEBUG)
+import pandas
+
+#logging.basicConfig(level=logging.DEBUG)
 
 
 async def main(loop):
@@ -24,43 +26,52 @@ async def main(loop):
             config = json.load(f)
 
         release_graphs = read_release_taskgraph_ids(config['rw_data_path'])
-        with open('task_data.csv', 'w') as csvf:
+        with open('task_data_temporary.csv', 'w') as csvf:
             taskwriter = csv.DictWriter(
                 csvf, delimiter='\t',
                 fieldnames=(
                     'kind', 'run', 'state', 'started', 'scheduled',
                     'resolved', 'product', 'version', 'build_platform',
-                    'locale', 'taskid'
+                    'locale', 'taskid', 'decision_scheduled', 'display_version'
                     )
                 )
             taskwriter.writeheader()
             for taskid, graph_data in release_graphs.items():
                 aiotasks.append(
                     asyncio.ensure_future(write_data(
-                        session, taskid, context=graph_data, csvwriter=taskwriter))
+                        session, taskid, context=graph_data, csvwriter=taskwriter, csvf=csvf))
                 )
             await asyncio.gather(*aiotasks)
         # https://github.com/aio-libs/aiohttp/issues/1115
         await asyncio.sleep(0)
+        await asyncio.sleep(0)
 
 
-async def write_data(session, taskid, context, csvwriter):
+async def write_data(session, taskid, context, csvwriter, csvf):
+    queue = taskcluster.Queue(session=session)
     taskjson = await get_taskgraph_json(session, taskid, context)
+    try:
+        decision_task_status = await queue.status(taskid)
+    except taskcluster.exceptions.TaskclusterRestFailure:
+        return
+    queue = None
+    scheduled = decision_task_status['status']['runs'][-1]['scheduled']
     if not taskjson:
         return
-    useful_tasks = find_relevant_tasks(taskjson)
+    useful_tasks = find_relevant_tasks(taskjson, all_tasks=True)
     if not useful_tasks:
         return
     print('-')
     for task, attributes in useful_tasks.items():
         print('=')
-        rows = await get_task_data_rows(session, task, attributes, context)
-        for row in rows:
-            csvwriter.writerow(row)
+        rows = await get_task_data_rows(session, task, attributes, context,
+                                        scheduled)
+        csvwriter.writerows(rows)
     print('%')
 
 
-async def get_task_data_rows(session, taskid, attributes, context):
+async def get_task_data_rows(session, taskid, attributes, context,
+                             scheduled):
     queue = taskcluster.Queue(session=session)
     try:
         status = await queue.status(taskid)
@@ -81,6 +92,8 @@ async def get_task_data_rows(session, taskid, attributes, context):
         row['resolved'] = r['resolved']
         row['product'] = context['product']
         row['version'] = context['version']
+        row['display_version'] = context['display_version']
+        row['decision_scheduled'] = scheduled
         row['build_platform'] = attributes.get('build_platform')
         if 'locale' in attributes:
             row['locale'] = attributes['locale']
@@ -95,6 +108,9 @@ async def get_task_data_rows(session, taskid, attributes, context):
                 row_ = copy.deepcopy(row)
                 row_['locale'] = l
                 rows.append(row_)
+        else:
+            row['locale'] = None
+            rows.append(row)
     return rows
 
 async def get_taskgraph_json(session, taskid, context):
@@ -107,11 +123,15 @@ async def get_taskgraph_json(session, taskid, context):
     return artifact
 
 
-def find_relevant_tasks(task_graph_json):
+def find_relevant_tasks(task_graph_json, all_tasks=False):
+    return {task: definition["attributes"]
+            for task, definition in task_graph_json.items()}
     wanted_attributes = {'locale', 'chunk_locales', 'all_locales'}
     return {task: definition["attributes"]
             for task, definition in task_graph_json.items()
-            if set(definition["attributes"].keys()) & wanted_attributes}
+            if (all_tasks or
+                (set(definition["attributes"].keys()) & wanted_attributes))
+            }
 
 
 def read_release_taskgraph_ids(repo_path):
@@ -123,7 +143,7 @@ def read_release_taskgraph_ids(repo_path):
     ):
         with open(path) as f:
             release_data = json.load(f)
-        version = release_data['version']
+        version = str(release_data['version'])
         gecko_version = re.match(r'\d*', version).group(0)
         if 'esr' in version:
             gecko_version += 'esr'
@@ -151,7 +171,8 @@ def read_release_taskgraph_ids(repo_path):
         else:
             raise NotImplementedError('Expected to have a search feature')
         for g in graphs:
-            ret[g] = {'product': product, 'version': gecko_version}
+            ret[g] = {'product': product, 'version': gecko_version,
+                      'display_version': version}
     return ret
 
 if __name__ == '__main__':
