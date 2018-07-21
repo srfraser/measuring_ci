@@ -1,0 +1,14 @@
+language: python
+
+matrix:
+  include:
+    - python: 3.6
+      env: TOXENV=py36
+
+install:
+    - travis_retry pip install tox
+script:
+    - tox
+
+# https://docs.travis-ci.com/user/reference/overview/#Container-based
+sudo: false
