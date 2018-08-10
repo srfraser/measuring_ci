@@ -20,17 +20,16 @@ async def main(loop):
                                      connector=connector,
                                      timeout=timeout) as session:
         aiotasks = [[]]
-        with open('config.json') as f:
-            config = json.load(f)
 
         nightlies = await get_nightly_taskgraphids(session)
-        with open('nightly_task_data.csv', 'w') as csvf:
+        with open('nightly_task_data_tmp1.csv', 'w') as csvf:
             taskwriter = csv.DictWriter(
                 csvf, delimiter='\t',
                 fieldnames=(
                     'kind', 'run', 'state', 'started', 'scheduled',
                     'resolved', 'date', 'build_platform',
-                    'locale', 'taskid', 'decision_scheduled'
+                    'locale', 'taskid', 'decision_scheduled', 'provisioner',
+                    'workertype'
                     )
                 )
             taskwriter.writeheader()
@@ -152,6 +151,8 @@ async def get_task_data_rows(session, taskid, attributes, created,
     rows = []
     for r in status['status'].get('runs', []):
         row = {'kind': attributes.get('kind')}
+        row['provisioner'] = status['provisionerId']
+        row['workertype'] = status['workerType']
         row['taskid'] = taskid
         row['run'] = r['runId']
         row['state'] = r['state']
