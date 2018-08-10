@@ -32,7 +32,8 @@ async def main(loop):
                 fieldnames=(
                     'kind', 'run', 'state', 'started', 'scheduled',
                     'resolved', 'product', 'version', 'build_platform',
-                    'locale', 'taskid', 'decision_scheduled', 'display_version'
+                    'locale', 'taskid', 'decision_scheduled',
+                    'display_version', 'provisioner', 'workertype'
                     )
                 )
             taskwriter.writeheader()
@@ -84,6 +85,8 @@ async def get_task_data_rows(session, taskid, attributes, context,
     print('.')
     for r in status['status'].get('runs', []):
         row = {'kind': attributes.get('kind')}
+        row['provisioner'] = status['provisionerId']
+        row['workertype'] = status['workerType']
         row['taskid'] = taskid
         row['run'] = r['runId']
         row['state'] = r['state']
