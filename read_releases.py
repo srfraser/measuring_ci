@@ -8,7 +8,7 @@ import re
 
 import aiohttp
 #import taskcluster
-import taskcluster.async as taskcluster
+import taskcluster.aio as taskcluster
 
 import pandas
 
