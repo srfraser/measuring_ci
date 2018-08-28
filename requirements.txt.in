@@ -2,4 +2,4 @@ aiohttp
 pandas
 plotly
 taskcluster
-git+https://github.com/srfraser/taskhuddler
+-e git+https://github.com/srfraser/taskhuddler#egg=taskhuddler
