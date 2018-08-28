@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f82cf118042be669d4358e3d5bcaa4d1ef7437cfa77a8a526ae30af3972b5144"
+            "sha256": "34094bab26a925974baecef871383d730c3ef0fccd882aa65318661ec790075a"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -305,6 +305,9 @@
             ],
             "index": "pypi",
             "version": "==4.0.1"
+        },
+        "taskhuddler": {
+            "git": "https://github.com/srfraser/taskhuddler"
         },
         "traitlets": {
             "hashes": [

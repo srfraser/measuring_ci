@@ -32,6 +32,7 @@ idna_ssl = "==1.1.0"
 ipython_genutils = "==0.2.0"
 jupyter_core = "==4.4.0"
 aiodns = "*"
+taskhuddler = {git = "https://github.com/srfraser/taskhuddler"}
 
 [dev-packages]
 
