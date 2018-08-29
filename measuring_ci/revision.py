@@ -1,0 +1,24 @@
+
+import asyncio
+import taskcluster.aio as taskcluster
+
+
+async def find_taskgroup_by_revision(revision, project, product, nightly=False):
+    """Use the index to find a task group ID from a cset revision."""
+    if nightly:
+        nightly_index = "nightly."
+    else:
+        nightly_index = ""
+    index = "gecko.v2.{project}.{nightly}revision.{revision}.{product}.linux64-opt".format(
+        project=project,
+        nightly=nightly_index,
+        revision=revision,
+        product=product
+    )
+
+    idx = taskcluster.Index()
+    queue = taskcluster.Queue()
+    build_task = await idx.findTask(index)
+    task_def = await queue.task(build_task['taskId'])
+
+    return task_def['taskGroupId']

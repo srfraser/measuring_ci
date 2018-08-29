@@ -28,17 +28,17 @@ def parse_args():
     return parser.parse_args()
 
 
-async def find_taskgroup_by_revision(args):
+async def find_taskgroup_by_revision(revision, project, product, nightly=False):
 
-    if args.nightly:
+    if nightly:
         nightly_index = "nightly."
     else:
         nightly_index = ""
     index = "gecko.v2.{project}.{nightly}revision.{revision}.{product}.linux64-opt".format(
-        project=args.project,
+        project=project,
         nightly=nightly_index,
-        revision=args.revision,
-        product=args.product
+        revision=revision,
+        product=product
     )
     print(index)
     idx = taskcluster.Index()
@@ -55,7 +55,8 @@ async def async_main():
     if args.taskgroupid:
         graph = await TaskGraph(args.taskgroupid)
     elif args.revision:
-        graph_id = await find_taskgroup_by_revision(args)
+        graph_id = await find_taskgroup_by_revision(
+            args.revision, args.project, args.product, args.nightly)
         print("Found {}".format(graph_id))
         graph = await TaskGraph(graph_id)
 
