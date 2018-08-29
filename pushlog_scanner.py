@@ -61,7 +61,7 @@ def taskgraph_walltime(graph):
 async def main():
     args = parse_args()
 
-    pushes = await scan_pushlog(starting_push=34000, cache_file="./pushlog_cache.json")
+    pushes = await scan_pushlog(cache_file="./pushlog_cache.json")
     tasks = list()
 
     for push in pushes:
