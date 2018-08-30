@@ -68,7 +68,6 @@ async def scan_pushlog(project='mozilla-central',
         print(url)
         response = await session.get(url)
         new_pushes = await response.json()
-        print(new_pushes)
         for push in new_pushes.get('pushes', list()):
             print(push)
             epoch = new_pushes['pushes'][push]['date']

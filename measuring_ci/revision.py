@@ -1,6 +1,6 @@
 
 import asyncio
-import taskcluster.aio as taskcluster
+import taskcluster
 
 
 async def find_taskgroup_by_revision(revision, project, product, nightly=False):
@@ -16,9 +16,14 @@ async def find_taskgroup_by_revision(revision, project, product, nightly=False):
         product=product
     )
 
-    idx = taskcluster.Index()
-    queue = taskcluster.Queue()
-    build_task = await idx.findTask(index)
-    task_def = await queue.task(build_task['taskId'])
+    idx = taskcluster.aio.Index()
+    queue = taskcluster.aio.Queue()
+
+    try:
+        build_task = await idx.findTask(index)
+        task_def = await queue.task(build_task['taskId'])
+    except taskcluster.exceptions.TaskclusterRestFailure as e:
+        print("Taskcluster error", e)
+        return
 
     return task_def['taskGroupId']

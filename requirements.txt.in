@@ -1,5 +1,9 @@
 aiohttp
 pandas
 plotly
+python-snappy
+pyarrow
 taskcluster
+boto3
+s3fs
 -e git+https://github.com/srfraser/taskhuddler#egg=taskhuddler

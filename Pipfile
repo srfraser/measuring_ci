@@ -33,6 +33,10 @@ ipython_genutils = "==0.2.0"
 jupyter_core = "==4.4.0"
 aiodns = "*"
 taskhuddler = {git = "https://github.com/srfraser/taskhuddler"}
+"s3fs" = "*"
+"boto3" = "*"
+python-snappy = "*"
+pyarrow = "*"
 
 [dev-packages]
 
