@@ -7,20 +7,16 @@ import os
 
 from datetime import datetime, timedelta
 
+from .files import open_wrapper
 from cost_by_taskgraph import find_taskgroup_by_revision
-
-
-PUSHLOG_URL = 'https://hg.mozilla.org/{project}/json-pushes?version=2'
-
-# Optional: &full=1
-
 
 logging.basicConfig(level=logging.INFO)
 
 log = logging.getLogger()
 
 
-async def scan_pushlog(project='mozilla-central',
+async def scan_pushlog(pushlog_url,
+                       project='mozilla-central',
                        starting_push=None,
                        cache_file=None):
     """Scan through the pushlog for entries.
@@ -42,12 +38,10 @@ async def scan_pushlog(project='mozilla-central',
     pushes = dict()
     if cache_file:
         try:
-            if os.path.exists(cache_file):
-                with open(cache_file, 'r') as f:
-                    pushes = json.load(f)
+            with open_wrapper(cache_file, 'r') as f:
+                pushes = json.load(f)
         except Exception as e:
             log.error(e)
-            raise
 
     if pushes and not starting_push:
         starting_push = max(pushes.keys())
@@ -62,7 +56,7 @@ async def scan_pushlog(project='mozilla-central',
     async with aiohttp.ClientSession(loop=loop,
                                      connector=connector,
                                      timeout=timeout) as session:
-        url = PUSHLOG_URL.format(project=project)
+        url = pushlog_url.format(project=project)
         if starting_push:
             url += "&startID={}".format(starting_push)
         print(url)
@@ -78,6 +72,6 @@ async def scan_pushlog(project='mozilla-central',
                 "changeset": final_cset,
             }
     if cache_file:
-        with open(cache_file, 'w') as f:
+        with open_wrapper(cache_file, 'w') as f:
             json.dump(pushes, f, indent=4)
     return pushes

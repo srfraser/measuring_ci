@@ -6,25 +6,22 @@ import csv
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+import yaml
 import pandas as pd
+
+import s3fs
 
 from taskhuddler.aio.graph import TaskGraph
 
+from measuring_ci.files import open_wrapper
 from measuring_ci.revision import find_taskgroup_by_revision
 from measuring_ci.pushlog import scan_pushlog
 
-# TODO: Move to yaml config file
-PUSHLOG_URL = 'https://hg.mozilla.org/{tree}/json-pushes?version=2'
-CACHE_FILE = './pushlog_cache.json'
-COST_CSV_FILE = './aws_cost_estimates.csv'
-TC_CACHE_DIR = './cache'
-# PARQUET_OUTPUT = './costs.parquet'
-PARQUET_OUTPUT = 's3://sfraser-parquet-1/costs.parquet'
 
-
-def fetch_worker_costs(year, month):
+def fetch_worker_costs(csv_filename):
     """static snapshot of data from worker_type_monthly_costs table."""
-    with open(COST_CSV_FILE, 'r') as f:
+
+    with open_wrapper(csv_filename, 'r') as f:
         reader = csv.reader(f)
         next(reader)  # header
         return {row[1]: float(row[4]) for row in reader}
@@ -34,6 +31,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="CI Costs")
     parser.add_argument('--project', type=str, default='mozilla-central')
     parser.add_argument('--product', type=str, default='firefox')
+    parser.add_argument('--config', type=str, default='scanner.yml')
     return parser.parse_args()
 
 
@@ -47,7 +45,7 @@ def probably_finished(timestamp):
     return False
 
 
-def taskgraph_full_cost(graph):
+def taskgraph_full_cost(graph, costs_filename):
     total_wall_time_buckets = defaultdict(timedelta)
 
     for task in graph.tasks():
@@ -56,7 +54,7 @@ def taskgraph_full_cost(graph):
 
     year = graph.earliest_start_time.year
     month = graph.earliest_start_time.month
-    worker_type_costs = fetch_worker_costs(year, month)
+    worker_type_costs = fetch_worker_costs(costs_filename)
 
     total_cost = 0.0
 
@@ -75,11 +73,17 @@ def taskgraph_full_cost(graph):
 async def main():
     args = parse_args()
 
-    pushes = await scan_pushlog(starting_push=34500, cache_file=CACHE_FILE)
+    with open(args.config, 'r') as y:
+        config = yaml.load(y)
+    os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
+
+    pushes = await scan_pushlog(config['pushlog_url'],
+                                starting_push=34500,
+                                cache_file=config['pushlog_cache_file'])
     tasks = list()
 
     try:
-        existing_costs = pd.read_parquet(PARQUET_OUTPUT)
+        existing_costs = pd.read_parquet(config['parquet_output'])
         print("Loaded existing costs: {}".format(existing_costs.describe()))
     except Exception as e:
         print("Couldn't load existing costs, using empty data set", e)
@@ -110,16 +114,15 @@ async def main():
 
     costs = list()
     for graph in taskgraphs:
-        costs.append([graph.groupid, push_id_map[graph.groupid], taskgraph_full_cost(graph)])
+        costs.append([graph.groupid, push_id_map[graph.groupid], taskgraph_full_cost(graph, config['costs_csv_file'])])
 
     costs_df = pd.DataFrame(costs, columns=['groupid', 'pushid', 'cost'])
 
     new_costs = existing_costs.merge(costs_df, how='outer')
 
-    new_costs.to_parquet(PARQUET_OUTPUT, compression='gzip')
+    new_costs.to_parquet(config['parquet_output'], compression='gzip')
 
 
 if __name__ == '__main__':
-    os.environ['TC_CACHE_DIR'] = TC_CACHE_DIR
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())

@@ -1,0 +1,5 @@
+pushlog_url: 'https://hg.mozilla.org/{project}/json-pushes?version=2'
+pushlog_cache_file: 's3://sfraser-parquet-1/pushlog_cache.json'
+costs_csv_file: 's3://sfraser-parquet-1/aws_cost_estimates.csv'
+TC_CACHE_DIR: 's3://sfraser-parquet-1/taskgraph_cache/'
+parquet_output: 's3://sfraser-parquet-1/costs.parquet'

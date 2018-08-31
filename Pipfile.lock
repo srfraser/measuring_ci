@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "80ba3c334dc9cf265e0bd4264132c541133ecb21bf0e11dcb10f362213e0653a"
+            "sha256": "fffce5c212a257d59b72bd12eab70c329a1e551e3499a1d3650be9ba001f3118"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -62,18 +62,18 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:06ecdf57cc4a44ed2f7d555390aca2f3bab6b244abd000ee2d55bfb408ff90c8",
-                "sha256:16f0bb2cc55f9c8c96549a7211c3e5b7242c60ba186eee3d7e737210c76fd221"
+                "sha256:95ac50b1905e0aa0344a2a733d76c44af81b2cc51304386b94b0ef669d8d19bc",
+                "sha256:b227764ab3dcb4b55d54dd90c7676846f153b1e29ed259081ffc34b064a6ff21"
             ],
             "index": "pypi",
-            "version": "==1.8.4"
+            "version": "==1.8.5"
         },
         "botocore": {
             "hashes": [
-                "sha256:284f25a67fa3470314ce78a53e57df8591549652ae31dce1097acefec195b694",
-                "sha256:8d0b64bfa0043b93cd779c8bf960bb0a8d763b6b803310b6bd49c62f564cc2af"
+                "sha256:4a2d4fc68fdc7113957cfc51b733a9900a9ba35e19e6d841a8b11fd6c20732f9",
+                "sha256:dcad4db0349dd11278d094a91434faf11500aae1991890a62d47a79923ca7ba3"
             ],
-            "version": "==1.11.4"
+            "version": "==1.11.5"
         },
         "certifi": {
             "hashes": [
@@ -317,6 +317,23 @@
             "index": "pypi",
             "version": "==2018.5"
         },
+        "pyyaml": {
+            "hashes": [
+                "sha256:3d7da3009c0f3e783b2c873687652d83b1bbfd5c88e9813fb7e5b03c0dd3108b",
+                "sha256:3ef3092145e9b70e3ddd2c7ad59bdd0252a94dfe3949721633e41344de00a6bf",
+                "sha256:40c71b8e076d0550b2e6380bada1f1cd1017b882f7e16f09a65be98e017f211a",
+                "sha256:558dd60b890ba8fd982e05941927a3911dc409a63dcb8b634feaa0cda69330d3",
+                "sha256:a7c28b45d9f99102fa092bb213aa12e0aaf9a6a1f5e395d36166639c1f96c3a1",
+                "sha256:aa7dd4a6a427aed7df6fb7f08a580d68d9b118d90310374716ae90b710280af1",
+                "sha256:bc558586e6045763782014934bfaf39d48b8ae85a2713117d16c39864085c613",
+                "sha256:d46d7982b62e0729ad0175a9bc7e10a566fc07b224d2c79fafb5e032727eaa04",
+                "sha256:d5eef459e30b09f5a098b9cea68bebfeb268697f78d647bd255a085371ac7f3f",
+                "sha256:e01d3203230e1786cd91ccfdc8f8454c8069c91bee3962ad93b87a4b2860f537",
+                "sha256:e170a9e6fcfd19021dd29845af83bb79236068bf5fd4df3327c1be18182b2531"
+            ],
+            "index": "pypi",
+            "version": "==3.13"
+        },
         "requests": {
             "hashes": [
                 "sha256:63b52e3c866428a224f97cab011de738c36aec0185aa91cfacd418b5d58911d1",
@@ -372,7 +389,7 @@
         },
         "taskhuddler": {
             "git": "https://github.com/srfraser/taskhuddler",
-            "ref": "e84f20fb67d0ecc648e9a1fd67b0a887072534b5"
+            "ref": "057d6d26ecf4398482466cd1cbc843c49e5d12bc"
         },
         "traitlets": {
             "hashes": [

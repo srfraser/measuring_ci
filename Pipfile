@@ -37,6 +37,7 @@ taskhuddler = {git = "https://github.com/srfraser/taskhuddler"}
 "boto3" = "*"
 python-snappy = "*"
 pyarrow = "*"
+pyyaml = "*"
 
 [dev-packages]
 

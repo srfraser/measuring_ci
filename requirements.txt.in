@@ -6,4 +6,5 @@ pyarrow
 taskcluster
 boto3
 s3fs
+pyyaml
 -e git+https://github.com/srfraser/taskhuddler#egg=taskhuddler
