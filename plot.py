@@ -33,11 +33,11 @@ def main():
             data.append(data_line)
     for kind in sorted(set([row['kind'] for row in relevant_rows])):
         data_line = go.Box(
-                # y=get_runtime_totals_per_locale(relevant_rows, platform),
-                y=get_runtime_totals_per_task_beet(relevant_rows, kind),
-                # x=get_versions_per_locale(relevant_rows, platform),
-                x=get_versions_per_task_beet(relevant_rows, kind),
-                name=kind,
+            # y=get_runtime_totals_per_locale(relevant_rows, platform),
+            y=get_runtime_totals_per_task_beet(relevant_rows, kind),
+            # x=get_versions_per_locale(relevant_rows, platform),
+            x=get_versions_per_task_beet(relevant_rows, kind),
+            name=kind,
         )
         data.append(data_line)
     layout = {

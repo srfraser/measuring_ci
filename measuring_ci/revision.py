@@ -13,12 +13,12 @@ async def find_taskgroup_by_revision(
     index = (  # collapse string
         "gecko.v2.{project}.{nightly}revision."
         "{revision}.{product}.linux64-opt"
-        ).format(
-            project=project,
-            nightly=nightly_index,
-            revision=revision,
-            product=product,
-        )
+    ).format(
+        project=project,
+        nightly=nightly_index,
+        revision=revision,
+        product=product,
+    )
 
     idx = taskcluster.aio.Index()
     queue = taskcluster.aio.Queue()

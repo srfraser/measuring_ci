@@ -173,9 +173,9 @@ def get_platforms(rows):
 def get_raw_data():
     return pd.read_csv('task_data.csv', sep='\t',
                        converters={
-                         'locale': str,
-                         'build_platform': str,
-                         'version': str,
+                           'locale': str,
+                           'build_platform': str,
+                           'version': str,
                        })
 
 

@@ -24,7 +24,7 @@ async def main():
 
     connector = aiohttp.TCPConnector(limit=100,
                                      resolver=aiohttp.resolver.AsyncResolver())
-    timeout = aiohttp.ClientTimeout(total=60*60*3)
+    timeout = aiohttp.ClientTimeout(total=(60 * 60 * 3))
     async with aiohttp.ClientSession(loop=loop,
                                      connector=connector,
                                      timeout=timeout) as session:

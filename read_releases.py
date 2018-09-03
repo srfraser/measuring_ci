@@ -14,7 +14,7 @@ import taskcluster.aio as taskcluster
 
 async def main(loop):
     connector = aiohttp.TCPConnector(limit=100)
-    timeout = aiohttp.ClientTimeout(total=60*60*3)
+    timeout = aiohttp.ClientTimeout(total=(60 * 60 * 3))
     async with aiohttp.ClientSession(loop=loop,
                                      connector=connector,
                                      timeout=timeout) as session:
@@ -31,8 +31,8 @@ async def main(loop):
                     'resolved', 'product', 'version', 'build_platform',
                     'locale', 'taskid', 'decision_scheduled',
                     'display_version', 'provisioner', 'workertype',
-                    ),
-                )
+                ),
+            )
             taskwriter.writeheader()
             for taskid, graph_data in release_graphs.items():
                 aiotasks.append(

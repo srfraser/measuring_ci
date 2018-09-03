@@ -46,7 +46,7 @@ async def scan_pushlog(pushlog_url,
     loop = asyncio.get_event_loop()
     connector = aiohttp.TCPConnector(limit=100,
                                      resolver=aiohttp.resolver.AsyncResolver())
-    timeout = aiohttp.ClientTimeout(total=60*60*3)
+    timeout = aiohttp.ClientTimeout(total=(60 * 60 * 3))
 
     async with aiohttp.ClientSession(loop=loop,
                                      connector=connector,

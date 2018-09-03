@@ -122,7 +122,7 @@ def get_runtime_totals_per_locale(rows, platform):
             (datetime.strptime(_r['resolved'], fmt) -
              datetime.strptime(_r['started'], fmt)).total_seconds() /
             value_counts[_r['taskid']]
-            ),
+        ),
         axis=1)  # Series!
     return runtime
 

@@ -77,7 +77,7 @@ async def async_main():
         if bucket not in worker_type_costs:
             continue
 
-        hours = total_wall_time_buckets[bucket].total_seconds()/(60*60)
+        hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
         cost = worker_type_costs[bucket] * hours
 
         total_cost += cost
