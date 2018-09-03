@@ -39,7 +39,7 @@ def main():
             timing = get_timing_by_kind(relevant_rows, version, kind)
             runtime = timing.apply(
                 lambda r: (
-                    datetime.strptime(r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") - \
+                    datetime.strptime(r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") -
                     datetime.strptime(r['started'], "%Y-%m-%dT%H:%M:%S.%fZ")).total_seconds(),
                 axis=1)  # Series!
             if not runtime.empty:
@@ -64,11 +64,11 @@ def main():
                 timing = get_timing_by_kind(relevant_rows, version, kind)
                 timing = timing.apply(
                     lambda r: (
-                        datetime.strptime(r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") - \
+                        datetime.strptime(r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") -
                         datetime.strptime(r['started'], "%Y-%m-%dT%H:%M:%S.%fZ")).total_seconds(),
                     axis=1)  # Series!
                 timing = pd.DataFrame(dict(times=timing, kind=kind))
-            
+
                 cached_timing = timing.copy()
 
 

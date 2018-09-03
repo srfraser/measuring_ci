@@ -7,12 +7,12 @@ import logging
 import re
 
 import aiohttp
-#import taskcluster
+# import taskcluster
 import taskcluster.aio as taskcluster
 
 import pandas
 
-#logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 
 async def main(loop):
@@ -78,7 +78,7 @@ async def get_task_data_rows(session, taskid, attributes, context,
         status = await queue.status(taskid)
     except taskcluster.exceptions.TaskclusterRestFailure:
         return []
-    except:
+    except Exception:
         print("CALLEK-SOMETHING WENT WRONG")
         raise
     rows = []
@@ -115,6 +115,7 @@ async def get_task_data_rows(session, taskid, attributes, context,
             row['locale'] = None
             rows.append(row)
     return rows
+
 
 async def get_taskgraph_json(session, taskid, context):
     queue = taskcluster.Queue(session=session)
@@ -177,6 +178,7 @@ def read_release_taskgraph_ids(repo_path):
             ret[g] = {'product': product, 'version': gecko_version,
                       'display_version': version}
     return ret
+
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

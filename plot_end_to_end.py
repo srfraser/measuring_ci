@@ -26,7 +26,7 @@ def main():
         local_data = reduced_data[reduced_data['kind'] == kind]
         platforms = get_platforms(local_data)
         for platform in platforms:
-            if platform and not 'source' in platform:
+            if platform and 'source' not in platform:
                 name = '{}[{}]'.format(kind, platform)
             else:
                 name = kind
@@ -38,13 +38,13 @@ def main():
     fig = ff.create_gantt(df)
     py.plot(fig, '62.0b7_gantt')
     return
-    import pdb;pdb.set_trace()
+    # import pdb;pdb.set_trace()
     for platform in sorted(platforms):
         data_line = go.Box(
             y=get_runtime_totals_per_locale(relevant_rows, platform),
-            #y=get_runtime_totals_per_task(relevant_rows, platform),
+            # y=get_runtime_totals_per_task(relevant_rows, platform),
             x=get_versions_per_locale(relevant_rows, platform),
-            #x=get_versions_per_task(relevant_rows, platform),
+            # x=get_versions_per_task(relevant_rows, platform),
             name=platform
         )
         data.append(data_line)
@@ -109,6 +109,7 @@ def get_runtime_totals_per_task(rows, platform):
         return False
 
     _seen = set()
+
     def _saw(row):
         nonlocal _seen
         if row['taskid'] in _seen:
@@ -119,11 +120,10 @@ def get_runtime_totals_per_task(rows, platform):
     return [
         ((datetime.strptime(row['resolved'], fmt) -
           datetime.strptime(row['started'], fmt)).total_seconds()
-          )
+         )
         for row in rows
         if _filter(row) and (not _saw(row))
     ]
-
 
 
 def get_versions_per_locale(rows, platform):
@@ -136,6 +136,7 @@ def get_versions_per_locale(rows, platform):
 
 def get_versions_per_task(rows, platform):
     _seen = set()
+
     def _saw(row):
         nonlocal _seen
         if row['taskid'] in _seen:

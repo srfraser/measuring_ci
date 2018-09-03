@@ -2,7 +2,7 @@ import csv
 from datetime import datetime
 
 import pandas as pd
-#import plotly.offline as py
+# import plotly.offline as py
 import plotly.plotly as py
 import plotly.graph_objs as go
 
@@ -24,26 +24,26 @@ def main():
     for platform in sorted(platforms):
         relevant_rows.sort_values(by='date', inplace=True)
         data_line = go.Box(
-            #y=get_runtime_totals_per_locale(relevant_rows, platform),
+            # y=get_runtime_totals_per_locale(relevant_rows, platform),
             y=get_runtime_totals_per_task(relevant_rows, platform),
-            #x=get_weeks_per_locale(relevant_rows, platform),
+            # x=get_weeks_per_locale(relevant_rows, platform),
             x=get_weeks_per_task(relevant_rows, platform),
-            #x=get_days_per_locale(relevant_rows, platform),
-            #x=get_days_per_task(relevant_rows, platform),
+            # x=get_days_per_locale(relevant_rows, platform),
+            # x=get_days_per_task(relevant_rows, platform),
             name=platform
         )
         data.append(data_line)
-    #updatemenus = list([
-    #    dict(
-    #        active=0,
-    #        buttons=list([
-    #            dict(label='All',
-    #                 method='update',
-    #                 args = [{'visible': [True, False]},
-    #                         {'title': 'All dates in past year'}]),
-    #        ]),
-    #    )
-    #])
+    # updatemenus = list([
+    #     dict(
+    #         active=0,
+    #         buttons=list([
+    #             dict(label='All',
+    #                  method='update',
+    #                  args = [{'visible': [True, False]},
+    #                          {'title': 'All dates in past year'}]),
+    #         ]),
+    #     )
+    # ])
     layout = {
         'xaxis': {
             'title': 'Week',
@@ -53,16 +53,16 @@ def main():
             'title': 'Job duration (per task) in seconds',
         },
         'boxmode': 'group',
-        #'updatemenus': updatemenus,
+        # 'updatemenus': updatemenus,
     }
-    #import pdb;pdb.set_trace()
+    # import pdb;pdb.set_trace()
     add_gecko_values(layout)
-    #data[-1] = go.Box(
-    #    x=['2017-W50'],
-    #    y=[0],
-    #    text=["Gecko 60"],
-    #    mode="text",
-    #)
+    # data[-1] = go.Box(
+    #     x=['2017-W50'],
+    #     y=[0],
+    #     text=["Gecko 60"],
+    #     mode="text",
+    # )
 
     fig = go.Figure(data=data, layout=layout)
     py.plot(fig, filename="win_desktop_l10n_duration_nightlies_per_task")
@@ -78,7 +78,7 @@ def add_gecko_values(layout):
         ('Gecko 60', '2018-W03'),
         ('Gecko 59', '2017-W46'),
         ('Gecko 58', '2017-W38'),
-        #('Gecko 57', '2017-W31'),
+        # ('Gecko 57', '2017-W31'),
     ]
     for gecko, week in combos:
         layout['shapes'].append({

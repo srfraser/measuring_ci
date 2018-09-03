@@ -8,7 +8,7 @@ import re
 
 import aiohttp
 import aiodns
-#import taskcluster
+# import taskcluster
 import taskcluster.aio as taskcluster
 # from measuring_ci.nightly import get_nightly_taskgraphids
 
@@ -163,7 +163,7 @@ async def get_task_data_rows(session, taskid, attributes, created,
         status = await queue.status(taskid)
     except taskcluster.exceptions.TaskclusterRestFailure:
         return []
-    except:
+    except Exception:
         print("CALLEK-SOMETHING WENT WRONG")
         raise
     rows = []
