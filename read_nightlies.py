@@ -1,13 +1,9 @@
 import asyncio
 import copy
 import csv
-import glob
-import json
 import logging
-import re
 
 import aiohttp
-import aiodns
 # import taskcluster
 import taskcluster.aio as taskcluster
 # from measuring_ci.nightly import get_nightly_taskgraphids

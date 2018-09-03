@@ -9,8 +9,6 @@ from datetime import datetime, timedelta
 import yaml
 import pandas as pd
 
-import s3fs
-
 from taskhuddler.aio.graph import TaskGraph
 
 from measuring_ci.files import open_wrapper
@@ -52,8 +50,8 @@ def taskgraph_full_cost(graph, costs_filename):
         key = task.json['status']['workerType']
         total_wall_time_buckets[key] += sum(task.run_durations(), timedelta(0))
 
-    year = graph.earliest_start_time.year
-    month = graph.earliest_start_time.month
+    # year = graph.earliest_start_time.year
+    # month = graph.earliest_start_time.month
     worker_type_costs = fetch_worker_costs(costs_filename)
 
     total_cost = 0.0

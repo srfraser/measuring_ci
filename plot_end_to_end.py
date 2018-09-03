@@ -1,4 +1,3 @@
-import csv
 from datetime import datetime
 
 import pandas as pd
@@ -39,11 +38,12 @@ def main():
     py.plot(fig, '62.0b7_gantt')
     return
     # import pdb;pdb.set_trace()
+    data = []
     for platform in sorted(platforms):
         data_line = go.Box(
-            y=get_runtime_totals_per_locale(relevant_rows, platform),
+            y=get_runtime_totals_per_locale(reduced_data, platform),
             # y=get_runtime_totals_per_task(relevant_rows, platform),
-            x=get_versions_per_locale(relevant_rows, platform),
+            x=get_versions_per_locale(reduced_data, platform),
             # x=get_versions_per_task(relevant_rows, platform),
             name=platform
         )

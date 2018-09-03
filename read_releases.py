@@ -3,14 +3,11 @@ import copy
 import csv
 import glob
 import json
-import logging
 import re
 
 import aiohttp
 # import taskcluster
 import taskcluster.aio as taskcluster
-
-import pandas
 
 # logging.basicConfig(level=logging.DEBUG)
 

@@ -1,9 +1,7 @@
-import csv
 from datetime import datetime
 
 import pandas as pd
 import plotly.plotly as py
-import plotly.figure_factory as ff
 import plotly.graph_objs as go
 
 
@@ -69,7 +67,7 @@ def main():
                     axis=1)  # Series!
                 timing = pd.DataFrame(dict(times=timing, kind=kind))
 
-                cached_timing = timing.copy()
+                # cached_timing = timing.copy()
 
 
 def get_raw_data():

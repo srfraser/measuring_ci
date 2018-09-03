@@ -1,4 +1,3 @@
-import csv
 from datetime import datetime
 
 import pandas as pd
@@ -139,8 +138,8 @@ def get_runtime_totals_per_task(rows, platform):
     r = r.drop_duplicates(subset='taskid')
     runtime = r.apply(
         lambda _r: (
-            datetime.strptime(_r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") -
-            datetime.strptime(_r['started'], "%Y-%m-%dT%H:%M:%S.%fZ")).total_seconds(),
+            datetime.strptime(_r['resolved'], fmt) -
+            datetime.strptime(_r['started'], fmt)).total_seconds(),
         axis=1)  # Series!
     return runtime
 
