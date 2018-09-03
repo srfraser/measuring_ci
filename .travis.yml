@@ -12,3 +12,10 @@ script:
 
 # https://docs.travis-ci.com/user/reference/overview/#Container-based
 sudo: false
+
+# python-snappy needs libsnappy-dev
+before_install:
+  - sudo apt-get install -y libsnappy-dev
+addons:
+  apt:
+    update: true

@@ -1,6 +1,8 @@
 
 from contextlib import ExitStack, contextmanager
+
 import s3fs
+
 
 @contextmanager
 def open_wrapper(filename, *args, **kwargs):

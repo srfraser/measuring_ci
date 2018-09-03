@@ -1,10 +1,9 @@
-import csv
 from datetime import datetime
 
 import pandas as pd
-import plotly.plotly as py
-import plotly.graph_objs as go
 import plotly.figure_factory as ff
+import plotly.graph_objs as go
+import plotly.plotly as py
 
 
 def main():
@@ -26,7 +25,7 @@ def main():
         local_data = reduced_data[reduced_data['kind'] == kind]
         platforms = get_platforms(local_data)
         for platform in platforms:
-            if platform and not 'source' in platform:
+            if platform and 'source' not in platform:
                 name = '{}[{}]'.format(kind, platform)
             else:
                 name = kind
@@ -38,14 +37,15 @@ def main():
     fig = ff.create_gantt(df)
     py.plot(fig, '62.0b7_gantt')
     return
-    import pdb;pdb.set_trace()
+    # import pdb;pdb.set_trace()
+    data = []
     for platform in sorted(platforms):
         data_line = go.Box(
-            y=get_runtime_totals_per_locale(relevant_rows, platform),
-            #y=get_runtime_totals_per_task(relevant_rows, platform),
-            x=get_versions_per_locale(relevant_rows, platform),
-            #x=get_versions_per_task(relevant_rows, platform),
-            name=platform
+            y=get_runtime_totals_per_locale(reduced_data, platform),
+            # y=get_runtime_totals_per_task(relevant_rows, platform),
+            x=get_versions_per_locale(reduced_data, platform),
+            # x=get_versions_per_task(relevant_rows, platform),
+            name=platform,
         )
         data.append(data_line)
     layout = {
@@ -109,6 +109,7 @@ def get_runtime_totals_per_task(rows, platform):
         return False
 
     _seen = set()
+
     def _saw(row):
         nonlocal _seen
         if row['taskid'] in _seen:
@@ -119,11 +120,10 @@ def get_runtime_totals_per_task(rows, platform):
     return [
         ((datetime.strptime(row['resolved'], fmt) -
           datetime.strptime(row['started'], fmt)).total_seconds()
-          )
+         )
         for row in rows
         if _filter(row) and (not _saw(row))
     ]
-
 
 
 def get_versions_per_locale(rows, platform):
@@ -136,6 +136,7 @@ def get_versions_per_locale(rows, platform):
 
 def get_versions_per_task(rows, platform):
     _seen = set()
+
     def _saw(row):
         nonlocal _seen
         if row['taskid'] in _seen:
@@ -158,9 +159,9 @@ def normalize_version(ver):
 def normalize_platform(rows, key):
         return (
             rows[key].str.replace(
-                'nightly', ''
+                'nightly', '',
             ).str.replace(
-                'devedition', ''
+                'devedition', '',
             ).str.rstrip('-')
         )
 
@@ -172,9 +173,9 @@ def get_platforms(rows):
 def get_raw_data():
     return pd.read_csv('task_data.csv', sep='\t',
                        converters={
-                         'locale': str,
-                         'build_platform': str,
-                         'version': str,
+                           'locale': str,
+                           'build_platform': str,
+                           'version': str,
                        })
 
 

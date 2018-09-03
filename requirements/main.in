@@ -1,0 +1,15 @@
+#aiohttp
+pandas
+plotly
+python-snappy
+pyarrow
+taskcluster
+boto3
+s3fs
+pyyaml
+# Taskhuddler is required but not yet available as a package
+# -e git+https://github.com/srfraser/taskhuddler#egg=taskhuddler
+
+# Required by taskhuddler
+asyncinit
+virtualenv

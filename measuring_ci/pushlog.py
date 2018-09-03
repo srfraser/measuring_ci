@@ -1,14 +1,10 @@
 import asyncio
-import aiohttp
-import aiodns
 import json
 import logging
-import os
 
-from datetime import datetime, timedelta
+import aiohttp
 
 from .files import open_wrapper
-from cost_by_taskgraph import find_taskgroup_by_revision
 
 logging.basicConfig(level=logging.INFO)
 
@@ -50,8 +46,7 @@ async def scan_pushlog(pushlog_url,
     loop = asyncio.get_event_loop()
     connector = aiohttp.TCPConnector(limit=100,
                                      resolver=aiohttp.resolver.AsyncResolver())
-    timeout = aiohttp.ClientTimeout(total=60*60*3)
-    results = dict()
+    timeout = aiohttp.ClientTimeout(total=(60 * 60 * 3))
 
     async with aiohttp.ClientSession(loop=loop,
                                      connector=connector,

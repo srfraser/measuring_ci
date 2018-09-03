@@ -3,21 +3,18 @@ import copy
 import csv
 import glob
 import json
-import logging
 import re
 
 import aiohttp
-#import taskcluster
+# import taskcluster
 import taskcluster.aio as taskcluster
 
-import pandas
-
-#logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 
 async def main(loop):
     connector = aiohttp.TCPConnector(limit=100)
-    timeout = aiohttp.ClientTimeout(total=60*60*3)
+    timeout = aiohttp.ClientTimeout(total=(60 * 60 * 3))
     async with aiohttp.ClientSession(loop=loop,
                                      connector=connector,
                                      timeout=timeout) as session:
@@ -33,14 +30,14 @@ async def main(loop):
                     'kind', 'run', 'state', 'started', 'scheduled',
                     'resolved', 'product', 'version', 'build_platform',
                     'locale', 'taskid', 'decision_scheduled',
-                    'display_version', 'provisioner', 'workertype'
-                    )
-                )
+                    'display_version', 'provisioner', 'workertype',
+                ),
+            )
             taskwriter.writeheader()
             for taskid, graph_data in release_graphs.items():
                 aiotasks.append(
                     asyncio.ensure_future(write_data(
-                        session, taskid, context=graph_data, csvwriter=taskwriter, csvf=csvf))
+                        session, taskid, context=graph_data, csvwriter=taskwriter, csvf=csvf)),
                 )
             await asyncio.gather(*aiotasks)
         # https://github.com/aio-libs/aiohttp/issues/1115
@@ -78,7 +75,7 @@ async def get_task_data_rows(session, taskid, attributes, context,
         status = await queue.status(taskid)
     except taskcluster.exceptions.TaskclusterRestFailure:
         return []
-    except:
+    except Exception:
         print("CALLEK-SOMETHING WENT WRONG")
         raise
     rows = []
@@ -115,6 +112,7 @@ async def get_task_data_rows(session, taskid, attributes, context,
             row['locale'] = None
             rows.append(row)
     return rows
+
 
 async def get_taskgraph_json(session, taskid, context):
     queue = taskcluster.Queue(session=session)
@@ -177,6 +175,7 @@ def read_release_taskgraph_ids(repo_path):
             ret[g] = {'product': product, 'version': gecko_version,
                       'display_version': version}
     return ret
+
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

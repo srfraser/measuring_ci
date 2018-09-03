@@ -1,21 +1,17 @@
-import os
-import asyncio
 import argparse
+import asyncio
 import csv
-
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-import yaml
 import pandas as pd
-
-import s3fs
-
+import yaml
 from taskhuddler.aio.graph import TaskGraph
 
 from measuring_ci.files import open_wrapper
-from measuring_ci.revision import find_taskgroup_by_revision
 from measuring_ci.pushlog import scan_pushlog
+from measuring_ci.revision import find_taskgroup_by_revision
 
 
 def fetch_worker_costs(csv_filename):
@@ -52,8 +48,8 @@ def taskgraph_full_cost(graph, costs_filename):
         key = task.json['status']['workerType']
         total_wall_time_buckets[key] += sum(task.run_durations(), timedelta(0))
 
-    year = graph.earliest_start_time.year
-    month = graph.earliest_start_time.month
+    # year = graph.earliest_start_time.year
+    # month = graph.earliest_start_time.month
     worker_type_costs = fetch_worker_costs(costs_filename)
 
     total_cost = 0.0
@@ -62,7 +58,7 @@ def taskgraph_full_cost(graph, costs_filename):
         if bucket not in worker_type_costs:
             continue
 
-        hours = total_wall_time_buckets[bucket].total_seconds()/(60*60)
+        hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
         cost = worker_type_costs[bucket] * hours
 
         total_cost += cost
@@ -99,7 +95,7 @@ async def main():
             graph_id = await find_taskgroup_by_revision(
                 revision=pushes[push]['changeset'],
                 project=args.project,
-                product=args.product
+                product=args.product,
             )
             if not graph_id:
                 print("Couldn't find graph id for push {}".format(push))
@@ -107,7 +103,7 @@ async def main():
             print("Push {}, Graph ID: {}".format(push, graph_id))
             push_id_map[graph_id] = push
             tasks.append(asyncio.ensure_future(
-                TaskGraph(graph_id)
+                TaskGraph(graph_id),
             ))
 
     taskgraphs = await asyncio.gather(*tasks)

@@ -1,11 +1,8 @@
-import csv
 from datetime import datetime
 
 import pandas as pd
-import plotly.plotly as py
-import plotly.figure_factory as ff
 import plotly.graph_objs as go
-
+import plotly.plotly as py
 
 KIND_ORDER = [
     'nightly-l10n', 'nightly-l10n-signing',
@@ -14,7 +11,7 @@ KIND_ORDER = [
     'release-beetmover-signed-langpacks',
     'partials', 'partials-signing', 'beetmover-repackage',
     'checksums', 'checksums-signing',
-    'beetmover-checksums', 'balrog'
+    'beetmover-checksums', 'balrog',
 ]
 
 
@@ -39,7 +36,7 @@ def main():
             timing = get_timing_by_kind(relevant_rows, version, kind)
             runtime = timing.apply(
                 lambda r: (
-                    datetime.strptime(r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") - \
+                    datetime.strptime(r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") -
                     datetime.strptime(r['started'], "%Y-%m-%dT%H:%M:%S.%fZ")).total_seconds(),
                 axis=1)  # Series!
             if not runtime.empty:
@@ -48,10 +45,10 @@ def main():
         traces.append(go.Bar(
             x=x_data,
             y=y_data,
-            name=kind
+            name=kind,
         ))
     layout = go.Layout(
-        barmode='stack'
+        barmode='stack',
     )
     fig = go.Figure(data=traces, layout=layout)
     py.plot(fig, filename='stacked-bar')
@@ -64,12 +61,12 @@ def main():
                 timing = get_timing_by_kind(relevant_rows, version, kind)
                 timing = timing.apply(
                     lambda r: (
-                        datetime.strptime(r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") - \
+                        datetime.strptime(r['resolved'], "%Y-%m-%dT%H:%M:%S.%fZ") -
                         datetime.strptime(r['started'], "%Y-%m-%dT%H:%M:%S.%fZ")).total_seconds(),
                     axis=1)  # Series!
                 timing = pd.DataFrame(dict(times=timing, kind=kind))
-            
-                cached_timing = timing.copy()
+
+                # cached_timing = timing.copy()
 
 
 def get_raw_data():
@@ -87,9 +84,9 @@ def complete_filter(rows):
 def normalize_platform(rows, key):
         return (
             rows[key].str.replace(
-                'nightly', ''
+                'nightly', '',
             ).str.replace(
-                'devedition', ''
+                'devedition', '',
             ).str.rstrip('-')
         )
 
