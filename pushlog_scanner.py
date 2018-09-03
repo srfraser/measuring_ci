@@ -97,7 +97,7 @@ async def main():
             graph_id = await find_taskgroup_by_revision(
                 revision=pushes[push]['changeset'],
                 project=args.project,
-                product=args.product
+                product=args.product,
             )
             if not graph_id:
                 print("Couldn't find graph id for push {}".format(push))
@@ -105,7 +105,7 @@ async def main():
             print("Push {}, Graph ID: {}".format(push, graph_id))
             push_id_map[graph_id] = push
             tasks.append(asyncio.ensure_future(
-                TaskGraph(graph_id)
+                TaskGraph(graph_id),
             ))
 
     taskgraphs = await asyncio.gather(*tasks)

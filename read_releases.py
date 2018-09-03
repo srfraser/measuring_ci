@@ -30,14 +30,14 @@ async def main(loop):
                     'kind', 'run', 'state', 'started', 'scheduled',
                     'resolved', 'product', 'version', 'build_platform',
                     'locale', 'taskid', 'decision_scheduled',
-                    'display_version', 'provisioner', 'workertype'
-                    )
+                    'display_version', 'provisioner', 'workertype',
+                    ),
                 )
             taskwriter.writeheader()
             for taskid, graph_data in release_graphs.items():
                 aiotasks.append(
                     asyncio.ensure_future(write_data(
-                        session, taskid, context=graph_data, csvwriter=taskwriter, csvf=csvf))
+                        session, taskid, context=graph_data, csvwriter=taskwriter, csvf=csvf)),
                 )
             await asyncio.gather(*aiotasks)
         # https://github.com/aio-libs/aiohttp/issues/1115

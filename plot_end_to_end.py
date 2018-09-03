@@ -45,7 +45,7 @@ def main():
             # y=get_runtime_totals_per_task(relevant_rows, platform),
             x=get_versions_per_locale(reduced_data, platform),
             # x=get_versions_per_task(relevant_rows, platform),
-            name=platform
+            name=platform,
         )
         data.append(data_line)
     layout = {
@@ -159,9 +159,9 @@ def normalize_version(ver):
 def normalize_platform(rows, key):
         return (
             rows[key].str.replace(
-                'nightly', ''
+                'nightly', '',
             ).str.replace(
-                'devedition', ''
+                'devedition', '',
             ).str.rstrip('-')
         )
 

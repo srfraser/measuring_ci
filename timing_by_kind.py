@@ -12,7 +12,7 @@ KIND_ORDER = [
     'release-beetmover-signed-langpacks',
     'partials', 'partials-signing', 'beetmover-repackage',
     'checksums', 'checksums-signing',
-    'beetmover-checksums', 'balrog'
+    'beetmover-checksums', 'balrog',
 ]
 
 
@@ -46,10 +46,10 @@ def main():
         traces.append(go.Bar(
             x=x_data,
             y=y_data,
-            name=kind
+            name=kind,
         ))
     layout = go.Layout(
-        barmode='stack'
+        barmode='stack',
     )
     fig = go.Figure(data=traces, layout=layout)
     py.plot(fig, filename='stacked-bar')
@@ -85,9 +85,9 @@ def complete_filter(rows):
 def normalize_platform(rows, key):
         return (
             rows[key].str.replace(
-                'nightly', ''
+                'nightly', '',
             ).str.replace(
-                'devedition', ''
+                'devedition', '',
             ).str.rstrip('-')
         )
 

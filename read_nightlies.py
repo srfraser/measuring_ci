@@ -19,7 +19,7 @@ async def main():
         'kind', 'run', 'state', 'started',
         'scheduled', 'resolved', 'date', 'build_platform',
         'locale', 'taskid', 'decision_scheduled', 'provisioner',
-        'workertype'
+        'workertype',
     )
 
     loop = asyncio.get_event_loop()
@@ -40,7 +40,7 @@ async def main():
 
             taskwriter = csv.DictWriter(
                 csvf, delimiter='\t',
-                fieldnames=fieldnames
+                fieldnames=fieldnames,
             )
             taskwriter.writeheader()
 
@@ -48,7 +48,7 @@ async def main():
             for taskid in nightlies:
                 aiotasks.append(
                     asyncio.ensure_future(write_data(
-                        session, taskid, csvwriter=taskwriter, semaphore=semaphore))
+                        session, taskid, csvwriter=taskwriter, semaphore=semaphore)),
                 )
 
             await asyncio.gather(*aiotasks)
@@ -69,7 +69,7 @@ async def get_nightly_taskgraphids(session):
 
     namespaces = sorted(
         [n['namespace'] for n in _ret['namespaces'] if n['name'].startswith('2')],
-        reverse=True
+        reverse=True,
     )
 
     # Recurse down through the namespaces until we have reached 'revision'
@@ -90,18 +90,18 @@ async def get_nightly_taskgraphids(session):
                 _semaphore_wrapper(
                     idx.findTask,
                     '{rev_ns}.firefox.linux64-opt'.format(rev_ns=rev_ns),
-                    semaphore=semaphore
-                )
-            )
+                    semaphore=semaphore,
+                ),
+            ),
         )
         aiotasks.append(
             asyncio.ensure_future(
                 _semaphore_wrapper(
                     idx.findTask,
                     '{rev_ns}.mobile.android-api-16-opt'.format(rev_ns=rev_ns),
-                    semaphore=semaphore
-                )
-            )
+                    semaphore=semaphore,
+                ),
+            ),
         )
     _ret = await asyncio.gather(*aiotasks, return_exceptions=True)
     taskids = [n['taskId'] for n in _ret if isinstance(n, dict)]
@@ -113,9 +113,9 @@ async def get_nightly_taskgraphids(session):
                 _semaphore_wrapper(
                     queue.task,
                     task,
-                    semaphore=semaphore
-                )
-            )
+                    semaphore=semaphore,
+                ),
+            ),
         )
     _ret = await asyncio.gather(*aiotasks, return_exceptions=True)
     return [r['taskGroupId'] for r in _ret if isinstance(r, dict)]

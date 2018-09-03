@@ -29,7 +29,7 @@ def main():
             x=get_weeks_per_task(relevant_rows, platform),
             # x=get_days_per_locale(relevant_rows, platform),
             # x=get_days_per_task(relevant_rows, platform),
-            name=platform
+            name=platform,
         )
         data.append(data_line)
     # updatemenus = list([
@@ -91,7 +91,7 @@ def add_gecko_values(layout):
             'line': {
                 'color': 'green',
                 'dash': 'dash',
-            }
+            },
         })
         layout['annotations'].append(dict(
             x=week,
@@ -209,9 +209,9 @@ def normalize_day(date_str):
 def normalize_platform(rows, key):
         return (
             rows[key].str.replace(
-                'nightly', ''
+                'nightly', '',
             ).str.replace(
-                'devedition', ''
+                'devedition', '',
             ).str.rstrip('-')
         )
 

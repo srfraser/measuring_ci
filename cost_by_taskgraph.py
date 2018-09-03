@@ -38,7 +38,7 @@ async def find_taskgroup_by_revision(revision, project, product, nightly=False):
         project=project,
         nightly=nightly_index,
         revision=revision,
-        product=product
+        product=product,
     )
     print(index)
     idx = taskcluster.Index()

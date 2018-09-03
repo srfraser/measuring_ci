@@ -28,7 +28,7 @@ def main():
                 y=get_runtime_totals_per_task(relevant_rows, platform),
                 # x=get_versions_per_locale(relevant_rows, platform),
                 x=get_versions_per_task(relevant_rows, platform),
-                name=platform
+                name=platform,
             )
             data.append(data_line)
     for kind in sorted(set([row['kind'] for row in relevant_rows])):
@@ -37,7 +37,7 @@ def main():
                 y=get_runtime_totals_per_task_beet(relevant_rows, kind),
                 # x=get_versions_per_locale(relevant_rows, platform),
                 x=get_versions_per_task_beet(relevant_rows, kind),
-                name=kind
+                name=kind,
         )
         data.append(data_line)
     layout = {
