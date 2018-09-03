@@ -1,19 +1,17 @@
-import os
-import asyncio
 import argparse
+import asyncio
 import csv
-
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-import yaml
 import pandas as pd
-
+import yaml
 from taskhuddler.aio.graph import TaskGraph
 
 from measuring_ci.files import open_wrapper
-from measuring_ci.revision import find_taskgroup_by_revision
 from measuring_ci.pushlog import scan_pushlog
+from measuring_ci.revision import find_taskgroup_by_revision
 
 
 def fetch_worker_costs(csv_filename):

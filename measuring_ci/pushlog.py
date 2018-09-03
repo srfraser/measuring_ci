@@ -1,7 +1,8 @@
 import asyncio
-import aiohttp
 import json
 import logging
+
+import aiohttp
 
 from .files import open_wrapper
 

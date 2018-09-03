@@ -4,9 +4,7 @@ import csv
 import logging
 
 import aiohttp
-# import taskcluster
 import taskcluster.aio as taskcluster
-# from measuring_ci.nightly import get_nightly_taskgraphids
 
 logging.basicConfig(level=logging.INFO)
 

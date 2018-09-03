@@ -1,9 +1,8 @@
 from datetime import datetime
 
 import pandas as pd
-# import plotly.offline as py
-import plotly.plotly as py
 import plotly.graph_objs as go
+import plotly.plotly as py
 
 
 def main():
