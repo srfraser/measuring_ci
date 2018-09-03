@@ -4,7 +4,6 @@
 #
 #    pip-compile --generate-hashes --output-file ./requirements.txt ./requirements.txt.in
 #
--e git+https://github.com/srfraser/taskhuddler#egg=taskhuddler
 aiohttp==3.3.2 \
     --hash=sha256:1a112a1fdf3802b7f2b182e22e51d71e4a8fa7387d0d38e79a268921b869e384 \
     --hash=sha256:33aa7c937ebaf063a860cbb0c263a771b33333a84965c6148eeafe64fb4e29ca \
@@ -32,6 +31,13 @@ attrs==18.1.0 \
     --hash=sha256:4b90b09eeeb9b88c35bc642cbac057e45a5fd85367b985bd2809c62b7b939265 \
     --hash=sha256:e0d0eb91441a3b53dab4d9b743eafc1ac44476296a2053b6ca3af0b139faf87b \
     # via aiohttp
+boto3==1.8.6 \
+    --hash=sha256:03067dc8ac0b16cf7ef1e016a08135c82a75e330bdbddea970e4c60ea9e4f699 \
+    --hash=sha256:061595d40ea97e4aae8beb9a2eebfe7b1851f40c3c779529d43ad4f8abe5b3d7
+botocore==1.11.6 \
+    --hash=sha256:bd85f6491207b632c76fc6ca3e74b5d75a48c7f06f68ae5e98e794e6be10bc06 \
+    --hash=sha256:dc28453285802c1a2db0be8085e99631394fd1e833265d53a4071ef8c7c2415a \
+    # via boto3, s3fs, s3transfer
 certifi==2018.4.16 \
     --hash=sha256:13e698f54293db9f89122b0581843a782ad0934a4fe0172d2a980ba77fc61bb7 \
     --hash=sha256:9fa520c1bacfb634fa7af20a76bcbd3d5fb390481724c597da32c719a7dca4b0 \
@@ -44,6 +50,11 @@ decorator==4.3.0 \
     --hash=sha256:2c51dff8ef3c447388fe5e4453d24a2bf128d3a4c32af3fabef1f01c6851ab82 \
     --hash=sha256:c39efa13fbdeb4506c476c9b3babf6a718da943dab7811c206005a4a956c080c \
     # via plotly, traitlets
+docutils==0.14 \
+    --hash=sha256:02aec4bd92ab067f6ff27a38a38a41173bf01bed8f89157768c1573f53e474a6 \
+    --hash=sha256:51e64ef2ebfb29cae1faa133b3710143496eca21c530f3f71424d77687764274 \
+    --hash=sha256:7a4bd47eaf6596e1295ecb11361139febe29b084a87bf005bf899f9a42edc3c6 \
+    # via botocore
 idna-ssl==1.1.0 \
     --hash=sha256:a933e3bb13da54383f9e8f35dc4f9cb9eb9b3b78c6b36f311254d6d0d92c6c7c \
     # via aiohttp
@@ -55,6 +66,10 @@ ipython-genutils==0.2.0 \
     --hash=sha256:72dd37233799e619666c9f639a9da83c34013a73e8bbc79a7a6348d93c61fab8 \
     --hash=sha256:eb2e116e75ecef9d4d228fdc66af54269afa26ab4463042e33785b887c628ba8 \
     # via nbformat, traitlets
+jmespath==0.9.3 \
+    --hash=sha256:6a81d4c9aa62caf061cb517b4d9ad1dd300374cd4706997aff9cd6aedd61fc64 \
+    --hash=sha256:f11b4461f425740a1d908e9a3f7365c3d2e569f6ca68a2ff8bc5bcd9676edd63 \
+    # via boto3, botocore
 jsonschema==2.6.0 \
     --hash=sha256:000e68abd33c972a5248544925a0cae7d1125f9bf6c58280d37546b946769a08 \
     --hash=sha256:6ff5f3180870836cae40f06fa10419f557208175f13ad7bc26caa77beb1f6e02 \
@@ -115,7 +130,7 @@ numpy==1.15.0 \
     --hash=sha256:f2a778dd9bb3e4590dbe3bbac28e7c7134280c4ec97e3bf8678170ee58c67b21 \
     --hash=sha256:f5a758252502b466b9c2b201ea397dae5a914336c987f3a76c3741a82d43c96e \
     --hash=sha256:fb4c33a404d9eff49a0cdc8ead0af6453f62f19e071b60d283f9dc05581e4134 \
-    # via pandas
+    # via pandas, pyarrow
 pandas==0.23.4 \
     --hash=sha256:11975fad9edbdb55f1a560d96f91830e83e29bed6ad5ebf506abda09818eaf60 \
     --hash=sha256:12e13d127ca1b585dd6f6840d3fe3fa6e46c36a6afe2dbc5cb0b57032c902e31 \
@@ -138,14 +153,40 @@ pandas==0.23.4 \
     --hash=sha256:fb944c8f0b0ab5c1f7846c686bc4cdf8cde7224655c12edcd59d5212cd57bec0
 plotly==3.0.2 \
     --hash=sha256:5bd04a0991512fe9008ab986429ff4b4f1448cceda56ed344e0dc709f42e067a
+pyarrow==0.10.0 \
+    --hash=sha256:60b33d0fa9161959e3ab7ebd4ce59a39c4b798f481a1055dc13d8f0afb0c2a69 \
+    --hash=sha256:6ebf597b435d622281746fd44a43d87ed043283441df1504d49ae80f55e447ef \
+    --hash=sha256:7f39179691f0da883db9d94e4ebe4a4acd87ac4e598aa5f454d15b78816bd6fd \
+    --hash=sha256:87328bdfa399977c332c0b67adbd7ad45d0e4be439aa25cfd1f1154da7d6fc0b \
+    --hash=sha256:87d65ec990d02bb6cd57f603bd4ef821f6e73524bc169505c227c343a535808c \
+    --hash=sha256:9c12ed27b4aaa4cd26ca44c4d1b8f14fc084e192dc1d82dcd7ab484fcd7842ad \
+    --hash=sha256:a9d300267d60f5c688dc9502080557e0b1c8907990d59e3437d6a8d23782b351 \
+    --hash=sha256:b93c6d9dd0c18202995d0f50cd88cefed0fe3cb6e6f780b8f2083464099b282b \
+    --hash=sha256:ec762b31025474dfb7fd283edf9b45b8af3943542344fbc639d6bdc16ff0636f \
+    --hash=sha256:ff10a1ca3ee17776ff9bd2a6b4963c5deaee13671d4064cbb45fe0ede66531b8
 python-dateutil==2.7.3 \
     --hash=sha256:1adb80e7a782c12e52ef9a8182bebeb73f1d7e24e374397af06fb4956c8dc5c0 \
     --hash=sha256:e27001de32f627c22380a688bcc43ce83504a7bc5da472209b4c70f02829f0b8 \
-    # via pandas
+    # via botocore, pandas
+python-snappy==0.5.3 \
+    --hash=sha256:59c79d83350f931ad5cf8f06ccb1c9bd1087a77c3ca7e00806884cda654a6faf \
+    --hash=sha256:8a7f803f06083d4106d55387d2daa32c12b5e376c3616b0e2da8b8a87a27d74a
 pytz==2018.5 \
     --hash=sha256:a061aa0a9e06881eb8b3b2b43f05b9439d6583c206d0a6c340ff72a7b6669053 \
     --hash=sha256:ffb9ef1de172603304d9d2819af6f5ece76f2e85ec10692a524dd876e72bf277 \
     # via pandas, plotly
+pyyaml==3.13 \
+    --hash=sha256:3d7da3009c0f3e783b2c873687652d83b1bbfd5c88e9813fb7e5b03c0dd3108b \
+    --hash=sha256:3ef3092145e9b70e3ddd2c7ad59bdd0252a94dfe3949721633e41344de00a6bf \
+    --hash=sha256:40c71b8e076d0550b2e6380bada1f1cd1017b882f7e16f09a65be98e017f211a \
+    --hash=sha256:558dd60b890ba8fd982e05941927a3911dc409a63dcb8b634feaa0cda69330d3 \
+    --hash=sha256:a7c28b45d9f99102fa092bb213aa12e0aaf9a6a1f5e395d36166639c1f96c3a1 \
+    --hash=sha256:aa7dd4a6a427aed7df6fb7f08a580d68d9b118d90310374716ae90b710280af1 \
+    --hash=sha256:bc558586e6045763782014934bfaf39d48b8ae85a2713117d16c39864085c613 \
+    --hash=sha256:d46d7982b62e0729ad0175a9bc7e10a566fc07b224d2c79fafb5e032727eaa04 \
+    --hash=sha256:d5eef459e30b09f5a098b9cea68bebfeb268697f78d647bd255a085371ac7f3f \
+    --hash=sha256:e01d3203230e1786cd91ccfdc8f8454c8069c91bee3962ad93b87a4b2860f537 \
+    --hash=sha256:e170a9e6fcfd19021dd29845af83bb79236068bf5fd4df3327c1be18182b2531
 requests==2.19.1 \
     --hash=sha256:63b52e3c866428a224f97cab011de738c36aec0185aa91cfacd418b5d58911d1 \
     --hash=sha256:ec22d826a36ed72a7358ff3fe56cbd4ba69dd7a6718ffd450ff0e9df7a47ce6a \
@@ -153,10 +194,16 @@ requests==2.19.1 \
 retrying==1.3.3 \
     --hash=sha256:08c039560a6da2fe4f2c426d0766e284d3b736e355f8dd24b37367b0bb41973b \
     # via plotly
+s3fs==0.1.6 \
+    --hash=sha256:38a3dda6800a5dc6ed697bff8e9a47d84f5c28d186dc25d2ff2f91b445f0dae5
+s3transfer==0.1.13 \
+    --hash=sha256:90dc18e028989c609146e241ea153250be451e05ecc0c2832565231dacdf59c1 \
+    --hash=sha256:c7a9ec356982d5e9ab2d4b46391a7d6a950e2b04c472419f5fdec70cc0ada72f \
+    # via boto3
 six==1.11.0 \
     --hash=sha256:70e8a77beed4562e7f14fe23a786b54f6296e34344c23bc42f07b15018ff98e9 \
     --hash=sha256:832dc0e10feb1aa2c68dcc57dbb658f1c7e65b9b61af69048abc87a2db00a0eb \
-    # via mohawk, plotly, python-dateutil, retrying, taskcluster, traitlets
+    # via mohawk, plotly, pyarrow, python-dateutil, retrying, taskcluster, traitlets
 slugid==1.0.7 \
     --hash=sha256:6dab3c7eef0bb423fb54cb7752e0f466ddd0ee495b78b763be60e8a27f69e779 \
     # via taskcluster
@@ -171,7 +218,7 @@ traitlets==4.3.2 \
 urllib3==1.23 \
     --hash=sha256:a68ac5e15e76e7e5dd2b8f94007233e01effe3e50e8daddf69acfd81cb686baf \
     --hash=sha256:b5725a0bd4ba422ab0e66e89e030c806576753ea3ee08554382c14e685d117b5 \
-    # via requests
+    # via botocore, requests
 virtualenv==16.0.0 \
     --hash=sha256:2ce32cd126117ce2c539f0134eb89de91a8413a29baac49cbab3eb50e2026669 \
     --hash=sha256:ca07b4c0b54e14a91af9f34d0919790b016923d157afda5efdde55c96718f752

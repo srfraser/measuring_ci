@@ -7,4 +7,9 @@ taskcluster
 boto3
 s3fs
 pyyaml
--e git+https://github.com/srfraser/taskhuddler#egg=taskhuddler
+# Taskhuddler is required but not yet available as a package
+# -e git+https://github.com/srfraser/taskhuddler#egg=taskhuddler
+
+# Required by taskhuddler
+asyncinit
+virtualenv
