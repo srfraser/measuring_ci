@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import taskcluster.aio as taskcluster
+
 from taskhuddler.aio.graph import TaskGraph
 
 

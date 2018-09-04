@@ -1,17 +1,21 @@
 import argparse
 import asyncio
 import csv
+import logging
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
 import pandas as pd
 import yaml
-from taskhuddler.aio.graph import TaskGraph
 
 from measuring_ci.files import open_wrapper
 from measuring_ci.pushlog import scan_pushlog
-from measuring_ci.revision import find_taskgroup_by_revision
+from taskhuddler.aio.graph import TaskGraph
+
+logging.basicConfig(level=logging.INFO)
+
+log = logging.getLogger()
 
 
 def fetch_worker_costs(csv_filename):
@@ -48,8 +52,6 @@ def taskgraph_full_cost(graph, costs_filename):
         key = task.json['status']['workerType']
         total_wall_time_buckets[key] += sum(task.run_durations(), timedelta(0))
 
-    # year = graph.earliest_start_time.year
-    # month = graph.earliest_start_time.month
     worker_type_costs = fetch_worker_costs(costs_filename)
 
     total_cost = 0.0
@@ -66,6 +68,10 @@ def taskgraph_full_cost(graph, costs_filename):
     return total_cost
 
 
+def find_push_by_group(group_id, project, pushes):
+    return next(push for push in pushes[project] if pushes[project][push]['taskgraph'] == group_id)
+
+
 async def main():
     args = parse_args()
 
@@ -73,35 +79,32 @@ async def main():
         config = yaml.load(y)
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
 
+    dataframe_columns = ['project', 'product', 'groupid', 'pushid', 'date', 'cost']
     pushes = await scan_pushlog(config['pushlog_url'],
+                                project=args.project,
+                                product=args.product,
                                 starting_push=34500,
                                 cache_file=config['pushlog_cache_file'])
     tasks = list()
 
     try:
         existing_costs = pd.read_parquet(config['parquet_output'])
-        print("Loaded existing costs: {}".format(existing_costs.describe()))
+        print("Loaded existing costs")
+        print(existing_costs.columns)
     except Exception as e:
         print("Couldn't load existing costs, using empty data set", e)
-        existing_costs = pd.DataFrame(columns=['groupid', 'pushid', 'cost'])
+        existing_costs = pd.DataFrame(columns=dataframe_columns)
 
-    push_id_map = dict()
-    for push in pushes:
-        if push in existing_costs['pushid']:
-            # Already examined this one.
-            print("Already examined push {}, skipping.".format(push))
+    for push in pushes[args.project]:
+        if str(push) in existing_costs['pushid'].values:
+            log.info("Already examined push %s, skipping.", push)
             continue
-        if probably_finished(pushes[push]['date']):
-            graph_id = await find_taskgroup_by_revision(
-                revision=pushes[push]['changeset'],
-                project=args.project,
-                product=args.product,
-            )
-            if not graph_id:
-                print("Couldn't find graph id for push {}".format(push))
+        if probably_finished(pushes[args.project][push]['date']):
+            graph_id = pushes[args.project][push]['taskgraph']
+            if not graph_id or graph_id == '':
+                log.info("Couldn't find graph id for push {}".format(push))
                 continue
-            print("Push {}, Graph ID: {}".format(push, graph_id))
-            push_id_map[graph_id] = push
+            log.info("Push %s, Graph ID: %s", push, graph_id)
             tasks.append(asyncio.ensure_future(
                 TaskGraph(graph_id),
             ))
@@ -110,12 +113,21 @@ async def main():
 
     costs = list()
     for graph in taskgraphs:
-        costs.append([graph.groupid, push_id_map[graph.groupid], taskgraph_full_cost(graph, config['costs_csv_file'])])
+        push = find_push_by_group(graph.groupid, args.project, pushes)
+        costs.append(
+            [
+                args.project,
+                args.product,
+                graph.groupid,
+                push,
+                pushes[args.project][push]['date'],
+                taskgraph_full_cost(graph, config['costs_csv_file']),
+            ])
 
-    costs_df = pd.DataFrame(costs, columns=['groupid', 'pushid', 'cost'])
+    costs_df = pd.DataFrame(costs, columns=dataframe_columns)
 
     new_costs = existing_costs.merge(costs_df, how='outer')
-
+    log.info("Writing parquet file %s", config['parquet_output'])
     new_costs.to_parquet(config['parquet_output'], compression='gzip')
 
 
