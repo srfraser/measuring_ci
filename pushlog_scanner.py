@@ -83,7 +83,7 @@ async def main():
     pushes = await scan_pushlog(config['pushlog_url'],
                                 project=args.project,
                                 product=args.product,
-                                starting_push=34500,
+                                # starting_push=34500,
                                 cache_file=config['pushlog_cache_file'])
     tasks = list()
 
@@ -131,6 +131,10 @@ async def main():
     new_costs.to_parquet(config['parquet_output'], compression='gzip')
 
 
-if __name__ == '__main__':
+def lambda_handler(jsondata, context):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
+
+
+if __name__ == '__main__':
+    lambda_handler({}, {})
