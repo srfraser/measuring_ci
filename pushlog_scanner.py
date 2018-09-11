@@ -45,6 +45,30 @@ def probably_finished(timestamp):
     return False
 
 
+def taskgraph_cost_final_runs_only(graph, costs_filename):
+    total_wall_time_buckets = defaultdict(timedelta)
+
+    for task in graph.tasks():
+        key = task.json['status']['workerType']
+        if task.completed:
+            total_wall_time_buckets[key] += task.resolved - task.started
+
+    worker_type_costs = fetch_worker_costs(costs_filename)
+
+    total_cost = 0.0
+
+    for bucket in total_wall_time_buckets:
+        if bucket not in worker_type_costs:
+            continue
+
+        hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
+        cost = worker_type_costs[bucket] * hours
+
+        total_cost += cost
+
+    return total_cost
+
+
 def taskgraph_full_cost(graph, costs_filename):
     total_wall_time_buckets = defaultdict(timedelta)
 
@@ -79,7 +103,7 @@ async def main():
         config = yaml.load(y)
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
 
-    dataframe_columns = ['project', 'product', 'groupid', 'pushid', 'date', 'cost']
+    dataframe_columns = ['project', 'product', 'groupid', 'pushid', 'date', 'origin', 'totalcost', 'idealcost']
     pushes = await scan_pushlog(config['pushlog_url'],
                                 project=args.project,
                                 product=args.product,
@@ -121,7 +145,9 @@ async def main():
                 graph.groupid,
                 push,
                 pushes[args.project][push]['date'],
+                'push',
                 taskgraph_full_cost(graph, config['costs_csv_file']),
+                taskgraph_cost_final_runs_only(graph, config['costs_csv_file']),
             ])
 
     costs_df = pd.DataFrame(costs, columns=dataframe_columns)
