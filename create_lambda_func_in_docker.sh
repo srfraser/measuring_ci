@@ -7,7 +7,7 @@ set -e
 # the compiled components
 docker build -t measuring_ci_lambda_builder .
 
-docker run -v "$(pwd)":/work measuring_ci_lambda_builder /runme.sh
+docker run -v "$(pwd)":/work measuring_ci_lambda_builder /create_lambda_func.sh
 
 
 

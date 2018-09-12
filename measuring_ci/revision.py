@@ -14,7 +14,7 @@ async def find_taskgroup_by_revision(
         "gecko.v2.{project}.{nightly}revision."
         "{revision}.{product}.linux64-opt"
     ).format(
-        project=project,
+        project=project.split('/')[-1],  # remove paths like release/ integration/
         nightly=nightly_index,
         revision=revision,
         product=product,

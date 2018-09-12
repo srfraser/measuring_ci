@@ -96,18 +96,21 @@ def find_push_by_group(group_id, project, pushes):
     return next(push for push in pushes[project] if pushes[project][push]['taskgraph'] == group_id)
 
 
-async def main():
-    args = parse_args()
+async def main(args):
 
-    with open(args.config, 'r') as y:
+    with open(args['config'], 'r') as y:
         config = yaml.load(y)
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
 
     dataframe_columns = ['project', 'product', 'groupid', 'pushid', 'date', 'origin', 'totalcost', 'idealcost']
+
+    args['short_project'] = args['project'].split('/')[-1]
+    config['pushlog_cache_file'] = config['pushlog_cache_file'].format(project=args['project'].replace('/', '_'))
+
     pushes = await scan_pushlog(config['pushlog_url'],
-                                project=args.project,
-                                product=args.product,
-                                # starting_push=34500,
+                                project=args['project'],
+                                product=args['product'],
+                                # starting_push=107600,
                                 cache_file=config['pushlog_cache_file'])
     tasks = list()
 
@@ -119,12 +122,13 @@ async def main():
         print("Couldn't load existing costs, using empty data set", e)
         existing_costs = pd.DataFrame(columns=dataframe_columns)
 
-    for push in pushes[args.project]:
+    for push in pushes[args['project']]:
+        log.debug("Examining push %s", push)
         if str(push) in existing_costs['pushid'].values:
             log.info("Already examined push %s, skipping.", push)
             continue
-        if probably_finished(pushes[args.project][push]['date']):
-            graph_id = pushes[args.project][push]['taskgraph']
+        if probably_finished(pushes[args['project']][push]['date']):
+            graph_id = pushes[args['project']][push]['taskgraph']
             if not graph_id or graph_id == '':
                 log.info("Couldn't find graph id for push {}".format(push))
                 continue
@@ -132,19 +136,20 @@ async def main():
             tasks.append(asyncio.ensure_future(
                 TaskGraph(graph_id),
             ))
-
+        else:
+            print("Less than a day old, skipping")
     taskgraphs = await asyncio.gather(*tasks)
 
     costs = list()
     for graph in taskgraphs:
-        push = find_push_by_group(graph.groupid, args.project, pushes)
+        push = find_push_by_group(graph.groupid, args['project'], pushes)
         costs.append(
             [
-                args.project,
-                args.product,
+                args['short_project'],
+                args['product'],
                 graph.groupid,
                 push,
-                pushes[args.project][push]['date'],
+                pushes[args['project']][push]['date'],
                 'push',
                 taskgraph_full_cost(graph, config['costs_csv_file']),
                 taskgraph_cost_final_runs_only(graph, config['costs_csv_file']),
@@ -157,10 +162,17 @@ async def main():
     new_costs.to_parquet(config['parquet_output'], compression='gzip')
 
 
-def lambda_handler(jsondata, context):
+def lambda_handler(args, context):
+    if 'config' not in args:
+        args['config'] = 'scanner.yml'
+    if 'product' not in args:
+        args['product'] = 'firefox'
+    if 'config' not in args:
+        args['config'] = 'scanner.yml'
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    loop.run_until_complete(main(args))
 
 
 if __name__ == '__main__':
-    lambda_handler({}, {})
+    # Use command-line arguments instead of json blob if not running in AWS Lambda
+    lambda_handler(vars(parse_args()), {})
