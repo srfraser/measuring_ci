@@ -45,40 +45,19 @@ def probably_finished(timestamp):
     return False
 
 
-def taskgraph_cost_final_runs_only(graph, costs_filename):
+def taskgraph_cost(graph, costs_filename):
     total_wall_time_buckets = defaultdict(timedelta)
-
-    for task in graph.tasks():
-        key = task.json['status']['workerType']
-        if task.completed:
-            total_wall_time_buckets[key] += task.resolved - task.started
-
-    worker_type_costs = fetch_worker_costs(costs_filename)
-
-    total_cost = 0.0
-
-    for bucket in total_wall_time_buckets:
-        if bucket not in worker_type_costs:
-            continue
-
-        hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
-        cost = worker_type_costs[bucket] * hours
-
-        total_cost += cost
-
-    return total_cost
-
-
-def taskgraph_full_cost(graph, costs_filename):
-    total_wall_time_buckets = defaultdict(timedelta)
-
+    final_task_wall_time_buckets = defaultdict(timedelta)
     for task in graph.tasks():
         key = task.json['status']['workerType']
         total_wall_time_buckets[key] += sum(task.run_durations(), timedelta(0))
+        if task.completed:
+            final_task_wall_time_buckets[key] += task.resolved - task.started
 
     worker_type_costs = fetch_worker_costs(costs_filename)
 
     total_cost = 0.0
+    final_task_costs = 0.0
 
     for bucket in total_wall_time_buckets:
         if bucket not in worker_type_costs:
@@ -86,10 +65,13 @@ def taskgraph_full_cost(graph, costs_filename):
 
         hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
         cost = worker_type_costs[bucket] * hours
-
         total_cost += cost
 
-    return total_cost
+        hours = final_task_wall_time_buckets[bucket].total_seconds() / (60 * 60)
+        cost = worker_type_costs[bucket] * hours
+        final_task_costs += cost
+
+    return total_cost, final_task_costs
 
 
 def find_push_by_group(group_id, project, pushes):
@@ -102,25 +84,28 @@ async def main(args):
         config = yaml.load(y)
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
 
-    dataframe_columns = ['project', 'product', 'groupid', 'pushid', 'date', 'origin', 'totalcost', 'idealcost']
+    cost_dataframe_columns = ['project', 'product', 'groupid',
+                              'pushid', 'date', 'origin', 'totalcost', 'idealcost']
+    daily_dataframe_columns = ['project', 'product', 'date', 'origin', 'totalcost', 'taskcount']
 
     args['short_project'] = args['project'].split('/')[-1]
-    config['pushlog_cache_file'] = config['pushlog_cache_file'].format(project=args['project'].replace('/', '_'))
+    config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
+        project=args['project'].replace('/', '_'))
 
     pushes = await scan_pushlog(config['pushlog_url'],
                                 project=args['project'],
                                 product=args['product'],
-                                # starting_push=107600,
+                                # starting_push=34612,
                                 cache_file=config['pushlog_cache_file'])
     tasks = list()
 
     try:
-        existing_costs = pd.read_parquet(config['parquet_output'])
-        print("Loaded existing costs")
+        existing_costs = pd.read_parquet(config['total_cost_output'])
+        print("Loaded existing per-push costs")
         print(existing_costs.columns)
     except Exception as e:
-        print("Couldn't load existing costs, using empty data set", e)
-        existing_costs = pd.DataFrame(columns=dataframe_columns)
+        print("Couldn't load existing per-push costs, using empty data set", e)
+        existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
 
     for push in pushes[args['project']]:
         log.debug("Examining push %s", push)
@@ -141,8 +126,15 @@ async def main(args):
     taskgraphs = await asyncio.gather(*tasks)
 
     costs = list()
+    daily_costs = defaultdict(int)
+    daily_task_count = defaultdict(int)
+
     for graph in taskgraphs:
         push = find_push_by_group(graph.groupid, args['project'], pushes)
+        full_cost, final_runs_cost = taskgraph_cost(graph, config['costs_csv_file'])
+        daily_costs[graph.earliest_start_time.strftime("%Y%m%d")] += full_cost
+        daily_task_count[graph.earliest_start_time.strftime(
+            "%Y%m%d")] += len([t for t in graph.tasks()])
         costs.append(
             [
                 args['short_project'],
@@ -151,15 +143,44 @@ async def main(args):
                 push,
                 pushes[args['project']][push]['date'],
                 'push',
-                taskgraph_full_cost(graph, config['costs_csv_file']),
-                taskgraph_cost_final_runs_only(graph, config['costs_csv_file']),
+                full_cost,
+                final_runs_cost,
             ])
 
-    costs_df = pd.DataFrame(costs, columns=dataframe_columns)
+    costs_df = pd.DataFrame(costs, columns=cost_dataframe_columns)
 
     new_costs = existing_costs.merge(costs_df, how='outer')
-    log.info("Writing parquet file %s", config['parquet_output'])
-    new_costs.to_parquet(config['parquet_output'], compression='gzip')
+    log.info("Writing parquet file %s", config['total_cost_output'])
+    new_costs.to_parquet(config['total_cost_output'], compression='gzip')
+
+    try:
+        daily_costs_df = pd.read_parquet(config['daily_totals_output'])
+        print("Loaded existing daily totals")
+    except Exception as e:
+        print("Couldn't load existing daily totals, using empty data set", e)
+        daily_costs_df = pd.DataFrame(columns=daily_dataframe_columns)
+
+    dailies = list()
+    for key in daily_costs:
+        dailies.append([
+            args['short_project'],
+            args['product'],
+            key,
+            'push',
+            daily_costs[key],
+            daily_task_count.get(key, 0),
+        ])
+    new_daily_costs = pd.DataFrame(dailies, columns=daily_dataframe_columns)
+
+    new_daily_costs.set_index(['project', 'product', 'date', 'origin'], inplace=True)
+    daily_costs_df.set_index(['project', 'product', 'date', 'origin'], inplace=True)
+
+    # Add new to old, using 0 as a filler if there's no matching index, then remove the
+    # index so the columns operate as expected.
+    daily_costs_df = daily_costs_df.add(new_daily_costs, fill_value=0).reset_index()
+
+    log.info("Writing parquet file %s", config['daily_totals_output'])
+    daily_costs_df.to_parquet(config['daily_totals_output'], compression='gzip')
 
 
 def lambda_handler(args, context):
