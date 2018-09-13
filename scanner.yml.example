@@ -3,4 +3,4 @@ pushlog_cache_file: 's3://mozilla-releng-metrics/measuring_ci/pushlog_cache_{pro
 costs_csv_file: 's3://mozilla-releng-metrics/measuring_ci/aws_cost_estimates.csv'
 TC_CACHE_DIR: 's3://mozilla-releng-metrics/taskgraph_cache/'
 total_cost_output: 's3://mozilla-releng-metrics/measuring_ci/v1/costs.parquet'
-daily_totals_output: 's3://mozilla-releng-metrics/measuring_ci/v1/daily_totals.parquet'
+daily_totals_output: 's3://mozilla-releng-metrics/measuring_ci/daily_totals/v1/daily_totals.parquet'

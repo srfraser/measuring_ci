@@ -85,8 +85,8 @@ async def main(args):
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
 
     cost_dataframe_columns = ['project', 'product', 'groupid',
-                              'pushid', 'date', 'origin', 'totalcost', 'idealcost']
-    daily_dataframe_columns = ['project', 'product', 'date', 'origin', 'totalcost', 'taskcount']
+                              'pushid', 'graph_date', 'origin', 'totalcost', 'idealcost']
+    daily_dataframe_columns = ['project', 'product', 'ci_date', 'origin', 'totalcost', 'taskcount']
 
     args['short_project'] = args['project'].split('/')[-1]
     config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
