@@ -172,8 +172,8 @@ async def main(args):
         ])
     new_daily_costs = pd.DataFrame(dailies, columns=daily_dataframe_columns)
 
-    new_daily_costs.set_index(['project', 'product', 'date', 'origin'], inplace=True)
-    daily_costs_df.set_index(['project', 'product', 'date', 'origin'], inplace=True)
+    new_daily_costs.set_index(['project', 'product', 'ci_date', 'origin'], inplace=True)
+    daily_costs_df.set_index(['project', 'product', 'ci_date', 'origin'], inplace=True)
 
     # Add new to old, using 0 as a filler if there's no matching index, then remove the
     # index so the columns operate as expected.
