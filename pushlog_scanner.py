@@ -132,7 +132,7 @@ async def main(args):
     for graph in taskgraphs:
         push = find_push_by_group(graph.groupid, args['project'], pushes)
         full_cost, final_runs_cost = taskgraph_cost(graph, config['costs_csv_file'])
-        daily_costs[graph.earliest_start_time.strftime("%Y%m%d")] += full_cost
+        daily_costs[graph.earliest_start_time.strftime("%Y-%m-%d")] += full_cost
         daily_task_count[graph.earliest_start_time.strftime(
             "%Y%m%d")] += len([t for t in graph.tasks()])
         costs.append(
