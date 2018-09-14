@@ -42,9 +42,9 @@ attrs==18.2.0 \
     --hash=sha256:10cbf6e27dbce8c30807caf056c8eb50917e0eaafe86347671b57254006c3e69 \
     --hash=sha256:ca4be454458f9dec299268d472aaa5a11f67a4ff70093396e1ceae9c76cf4bbb \
     # via aiohttp
-boto3==1.9.3 \
-    --hash=sha256:45a24345e3f65c9a472b5e5058e7c882afe556406f0b516e4668fef3231319cf \
-    --hash=sha256:f09cd3ca8f3906452e1442063ab504ea80eab4757b19dfeeb127a11b6639fe75
+boto3==1.9.4 \
+    --hash=sha256:323660fd1aa9c95fe90003f44c5fc37cbb891a8b506fa346967d14edcbcb90a4 \
+    --hash=sha256:2152e0da8098665e6a03bbbde1de1b4fafdef7151010d1f0e53693a3f2a1deb0
 botocore==1.12.4 \
     --hash=sha256:3b2cab368572ee987a6236321ddea491e4253c819009c87ebc9e42e60371e3ae \
     --hash=sha256:7834eba53c6bedea21eb76f25a39e477dede3a24aeb51ff19c0248ea8348f007    # via boto3, s3fs, s3transfer
