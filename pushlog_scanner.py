@@ -78,6 +78,11 @@ def find_push_by_group(group_id, project, pushes):
     return next(push for push in pushes[project] if pushes[project][push]['taskgraph'] == group_id)
 
 
+async def _semaphore_wrapper(action, args, semaphore):
+    with semaphore:
+        return await action(*args)
+
+
 async def main(args):
 
     with open(args['config'], 'r') as y:
@@ -110,6 +115,8 @@ async def main(args):
         print("Couldn't load existing per-push costs, using empty data set", e)
         existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
 
+    semaphore = asyncio.Semaphore(10)
+
     for push in pushes[args['project']]:
         log.debug("Examining push %s", push)
         if str(push) in existing_costs['pushid'].values:
@@ -122,7 +129,10 @@ async def main(args):
                 continue
             log.info("Push %s, Graph ID: %s", push, graph_id)
             tasks.append(asyncio.ensure_future(
-                TaskGraph(graph_id),
+                _semaphore_wrapper,
+                TaskGraph,
+                args=(graph_id,),
+                semaphore=semaphore,
             ))
         else:
             print("Less than a day old, skipping")
