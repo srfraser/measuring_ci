@@ -84,8 +84,11 @@ async def main(args):
         config = yaml.load(y)
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
 
-    cost_dataframe_columns = ['project', 'product', 'groupid',
-                              'pushid', 'graph_date', 'origin', 'totalcost', 'idealcost']
+    cost_dataframe_columns = [
+        'project', 'product', 'groupid',
+        'pushid', 'graph_date', 'origin',
+        'totalcost', 'idealcost', 'taskcount',
+    ]
     daily_dataframe_columns = ['project', 'product', 'ci_date', 'origin', 'totalcost', 'taskcount']
 
     args['short_project'] = args['project'].split('/')[-1]
@@ -132,9 +135,10 @@ async def main(args):
     for graph in taskgraphs:
         push = find_push_by_group(graph.groupid, args['project'], pushes)
         full_cost, final_runs_cost = taskgraph_cost(graph, config['costs_csv_file'])
-        daily_costs[graph.earliest_start_time.strftime("%Y-%m-%d")] += full_cost
-        daily_task_count[graph.earliest_start_time.strftime(
-            "%Y%m%d")] += len([t for t in graph.tasks()])
+        task_count = len([t for t in graph.tasks()])
+        date_bucket = graph.earliest_start_time.strftime("%Y-%m-%d")
+        daily_costs[date_bucket] += full_cost
+        daily_task_count[date_bucket] += task_count
         costs.append(
             [
                 args['short_project'],
@@ -145,6 +149,7 @@ async def main(args):
                 'push',
                 full_cost,
                 final_runs_cost,
+                task_count,
             ])
 
     costs_df = pd.DataFrame(costs, columns=cost_dataframe_columns)
