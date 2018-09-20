@@ -7,15 +7,16 @@ async def find_taskgroup_by_revision(
 ):
     """Use the index to find a task group ID from a cset revision."""
     if nightly:
-        nightly_index = "nightly."
+        index = (  # collapse string
+            "gecko.v2.{project}.nightly.revision."
+            "{revision}.{product}.linux64-opt"
+        )
     else:
-        nightly_index = ""
-    index = (  # collapse string
-        "gecko.v2.{project}.{nightly}revision."
-        "{revision}.{product}.linux64-opt"
-    ).format(
+        index = (
+            "gecko.v2.{project}.revision.{revision}.taskgraph.decision"
+        )
+    index = index.format(
         project=project.split('/')[-1],  # remove paths like release/ integration/
-        nightly=nightly_index,
         revision=revision,
         product=product,
     )
