@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import csv
 import logging
 import os
 from collections import defaultdict
@@ -9,22 +8,13 @@ from datetime import datetime, timedelta
 import pandas as pd
 import yaml
 
-from measuring_ci.files import open_wrapper
+from measuring_ci.costs import fetch_worker_costs
 from measuring_ci.pushlog import scan_pushlog
 from taskhuddler.aio.graph import TaskGraph
 
 logging.basicConfig(level=logging.INFO)
 
 log = logging.getLogger()
-
-
-def fetch_worker_costs(csv_filename):
-    """static snapshot of data from worker_type_monthly_costs table."""
-
-    with open_wrapper(csv_filename, 'r') as f:
-        reader = csv.reader(f)
-        next(reader)  # header
-        return {row[1]: float(row[4]) for row in reader}
 
 
 def parse_args():
@@ -45,7 +35,7 @@ def probably_finished(timestamp):
     return False
 
 
-def taskgraph_cost(graph, costs_filename):
+def taskgraph_cost(graph, worker_costs):
     total_wall_time_buckets = defaultdict(timedelta)
     final_task_wall_time_buckets = defaultdict(timedelta)
     for task in graph.tasks():
@@ -54,21 +44,19 @@ def taskgraph_cost(graph, costs_filename):
         if task.completed:
             final_task_wall_time_buckets[key] += task.resolved - task.started
 
-    worker_type_costs = fetch_worker_costs(costs_filename)
-
     total_cost = 0.0
     final_task_costs = 0.0
 
     for bucket in total_wall_time_buckets:
-        if bucket not in worker_type_costs:
+        if bucket not in worker_costs.index:
             continue
 
         hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
-        cost = worker_type_costs[bucket] * hours
+        cost = worker_costs.at[bucket, 'unit_cost'] * hours
         total_cost += cost
 
         hours = final_task_wall_time_buckets[bucket].total_seconds() / (60 * 60)
-        cost = worker_type_costs[bucket] * hours
+        cost = worker_costs.at[bucket, 'unit_cost'] * hours
         final_task_costs += cost
 
     return total_cost, final_task_costs
@@ -142,9 +130,10 @@ async def main(args):
     daily_costs = defaultdict(int)
     daily_task_count = defaultdict(int)
 
+    worker_costs = fetch_worker_costs(config['costs_csv_file'])
     for graph in taskgraphs:
         push = find_push_by_group(graph.groupid, args['project'], pushes)
-        full_cost, final_runs_cost = taskgraph_cost(graph, config['costs_csv_file'])
+        full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
         task_count = len([t for t in graph.tasks()])
         date_bucket = graph.earliest_start_time.strftime("%Y-%m-%d")
         daily_costs[date_bucket] += full_cost
