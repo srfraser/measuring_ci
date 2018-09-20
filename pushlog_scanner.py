@@ -117,11 +117,11 @@ async def main(args):
                 continue
             log.info("Push %s, Graph ID: %s", push, graph_id)
             tasks.append(asyncio.ensure_future(
-                _semaphore_wrapper,
-                TaskGraph,
-                args=(graph_id,),
-                semaphore=semaphore,
-            ))
+                _semaphore_wrapper(
+                    TaskGraph,
+                    args=(graph_id,),
+                    semaphore=semaphore,
+                )))
         else:
             print("Less than a day old, skipping")
     taskgraphs = await asyncio.gather(*tasks)
