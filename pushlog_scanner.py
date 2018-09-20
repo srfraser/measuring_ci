@@ -67,7 +67,7 @@ def find_push_by_group(group_id, project, pushes):
 
 
 async def _semaphore_wrapper(action, args, semaphore):
-    with semaphore:
+    async with semaphore:
         return await action(*args)
 
 
