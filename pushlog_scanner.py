@@ -71,11 +71,7 @@ async def _semaphore_wrapper(action, args, semaphore):
         return await action(*args)
 
 
-async def main(args):
-
-    with open(args['config'], 'r') as y:
-        config = yaml.load(y)
-    os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
+async def scan_project(project, product, config):
 
     cost_dataframe_columns = [
         'project', 'product', 'groupid',
@@ -84,34 +80,36 @@ async def main(args):
     ]
     daily_dataframe_columns = ['project', 'product', 'ci_date', 'origin', 'totalcost', 'taskcount']
 
-    args['short_project'] = args['project'].split('/')[-1]
+    short_project = project.split('/')[-1]
+    config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
+    config['daily_totals_output'] = config['daily_totals_output'].format(project=short_project)
     config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
-        project=args['project'].replace('/', '_'))
+        project=project.replace('/', '_'))
 
     pushes = await scan_pushlog(config['pushlog_url'],
-                                project=args['project'],
-                                product=args['product'],
-                                starting_push=34612,
+                                project=project,
+                                product=product,
+                                # starting_push=34612,
                                 cache_file=config['pushlog_cache_file'])
-    tasks = list()
 
     try:
         existing_costs = pd.read_parquet(config['total_cost_output'])
-        print("Loaded existing per-push costs")
-        print(existing_costs.columns)
+        log.info("Loaded existing per-push costs")
+        log.debug(existing_costs.columns)
     except Exception as e:
-        print("Couldn't load existing per-push costs, using empty data set", e)
+        log.info("Couldn't load existing per-push costs, using empty data set", e)
         existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
 
     semaphore = asyncio.Semaphore(10)
+    tasks = list()
 
-    for push in pushes[args['project']]:
+    for push in pushes[project]:
         log.debug("Examining push %s", push)
         if str(push) in existing_costs['pushid'].values:
             log.info("Already examined push %s, skipping.", push)
             continue
-        if probably_finished(pushes[args['project']][push]['date']):
-            graph_id = pushes[args['project']][push]['taskgraph']
+        if probably_finished(pushes[project][push]['date']):
+            graph_id = pushes[project][push]['taskgraph']
             if not graph_id or graph_id == '':
                 log.info("Couldn't find graph id for push {}".format(push))
                 continue
@@ -123,7 +121,7 @@ async def main(args):
                     semaphore=semaphore,
                 )))
         else:
-            print("Less than a day old, skipping")
+            log.info("Push %s less than a day old, skipping", push)
     taskgraphs = await asyncio.gather(*tasks)
 
     costs = list()
@@ -135,7 +133,7 @@ async def main(args):
         scriptworker_csv_filename=config.get('costs_scriptworker_csv_file'),
     )
     for graph in taskgraphs:
-        push = find_push_by_group(graph.groupid, args['project'], pushes)
+        push = find_push_by_group(graph.groupid, project, pushes)
         full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
         task_count = len([t for t in graph.tasks()])
         date_bucket = graph.earliest_start_time.strftime("%Y-%m-%d")
@@ -143,11 +141,11 @@ async def main(args):
         daily_task_count[date_bucket] += task_count
         costs.append(
             [
-                args['short_project'],
-                args['product'],
+                short_project,
+                product,
                 graph.groupid,
                 push,
-                pushes[args['project']][push]['date'],
+                pushes[project][push]['date'],
                 'push',
                 full_cost,
                 final_runs_cost,
@@ -162,16 +160,16 @@ async def main(args):
 
     try:
         daily_costs_df = pd.read_parquet(config['daily_totals_output'])
-        print("Loaded existing daily totals")
+        log.info("Loaded existing daily totals")
     except Exception as e:
-        print("Couldn't load existing daily totals, using empty data set", e)
+        log.info("Couldn't load existing daily totals, using empty data set", e)
         daily_costs_df = pd.DataFrame(columns=daily_dataframe_columns)
 
     dailies = list()
     for key in daily_costs:
         dailies.append([
-            args['short_project'],
-            args['product'],
+            short_project,
+            product,
             key,
             'push',
             daily_costs[key],
@@ -190,13 +188,22 @@ async def main(args):
     daily_costs_df.to_parquet(config['daily_totals_output'], compression='gzip')
 
 
+async def main(args):
+    with open(args['config'], 'r') as y:
+        config = yaml.load(y)
+    os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
+
+    # cope with original style, listing one project, or listing multiple
+    for project in args.get('projects', [args.get('project')]):
+        await scan_project(project, args['product'], config)
+
+
 def lambda_handler(args, context):
+    assert context  # not current used
     if 'config' not in args:
         args['config'] = 'scanner.yml'
     if 'product' not in args:
         args['product'] = 'firefox'
-    if 'config' not in args:
-        args['config'] = 'scanner.yml'
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main(args))
 
