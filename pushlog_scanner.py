@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import yaml
 
-from measuring_ci.costs import fetch_worker_costs
+from measuring_ci.costs import fetch_all_worker_costs
 from measuring_ci.pushlog import scan_pushlog
 from taskhuddler.aio.graph import TaskGraph
 
@@ -91,7 +91,7 @@ async def main(args):
     pushes = await scan_pushlog(config['pushlog_url'],
                                 project=args['project'],
                                 product=args['product'],
-                                # starting_push=34612,
+                                starting_push=34612,
                                 cache_file=config['pushlog_cache_file'])
     tasks = list()
 
@@ -130,7 +130,10 @@ async def main(args):
     daily_costs = defaultdict(int)
     daily_task_count = defaultdict(int)
 
-    worker_costs = fetch_worker_costs(config['costs_csv_file'])
+    worker_costs = fetch_all_worker_costs(
+        tc_csv_filename=config['costs_csv_file'],
+        scriptworker_csv_filename=config.get('costs_scriptworker_csv_file'),
+    )
     for graph in taskgraphs:
         push = find_push_by_group(graph.groupid, args['project'], pushes)
         full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
