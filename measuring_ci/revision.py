@@ -1,5 +1,10 @@
+import logging
 
 import taskcluster
+
+logging.basicConfig(level=logging.DEBUG)
+
+log = logging.getLogger()
 
 
 async def find_taskgroup_by_revision(
@@ -24,11 +29,12 @@ async def find_taskgroup_by_revision(
     idx = taskcluster.aio.Index()
     queue = taskcluster.aio.Queue()
 
+    log.debug('Looking for taskId via index {}'.format(index))
     try:
         build_task = await idx.findTask(index)
         task_def = await queue.task(build_task['taskId'])
     except taskcluster.exceptions.TaskclusterRestFailure as e:
-        print("Taskcluster error", e)
+        log.debug("Taskcluster error", e)
         return
 
     return task_def['taskGroupId']

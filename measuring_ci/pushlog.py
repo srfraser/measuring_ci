@@ -8,7 +8,7 @@ import aiohttp
 from .files import open_wrapper
 from .revision import find_taskgroup_by_revision
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 log = logging.getLogger()
 
@@ -41,6 +41,7 @@ async def scan_pushlog(pushlog_url,
     pushes = dict()
     if cache_file:
         try:
+            log.debug('Loading pushlog cache')
             with open_wrapper(cache_file, 'r') as f:
                 pushes = json.load(f)
         except Exception as e:
@@ -48,7 +49,7 @@ async def scan_pushlog(pushlog_url,
 
     if pushes.get(project) and not starting_push:
         starting_push = max(pushes[project].keys())
-        print("Setting starting_push to {}".format(starting_push))
+        log.debug("Setting starting_push to {}".format(starting_push))
 
     if project not in pushes:
         pushes[project] = dict()
@@ -64,7 +65,7 @@ async def scan_pushlog(pushlog_url,
         url = pushlog_url.format(project=project)
         if starting_push:
             url += "&startID={}".format(starting_push)
-        log.debug("Querying url %s", url)
+        log.debug("Querying push url %s", url)
         response = await session.get(url)
         new_pushes = await response.json()
         for push in new_pushes.get('pushes', list()):

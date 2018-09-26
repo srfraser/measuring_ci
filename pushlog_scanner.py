@@ -12,7 +12,7 @@ from measuring_ci.costs import fetch_all_worker_costs
 from measuring_ci.pushlog import scan_pushlog
 from taskhuddler.aio.graph import TaskGraph
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 log = logging.getLogger()
 
@@ -86,6 +86,7 @@ async def scan_project(project, product, config):
     config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
         project=project.replace('/', '_'))
 
+    log.debug("Looking up pushlog")
     pushes = await scan_pushlog(config['pushlog_url'],
                                 project=project,
                                 product=product,
@@ -95,7 +96,6 @@ async def scan_project(project, product, config):
     try:
         existing_costs = pd.read_parquet(config['total_cost_output'])
         log.info("Loaded existing per-push costs")
-        log.debug(existing_costs.columns)
     except Exception as e:
         log.info("Couldn't load existing per-push costs, using empty data set", e)
         existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
@@ -121,13 +121,15 @@ async def scan_project(project, product, config):
                     semaphore=semaphore,
                 )))
         else:
-            log.info("Push %s less than a day old, skipping", push)
+            log.info("Push %s probably not finished, skipping", push)
+    log.debug('Gathering task graphs')
     taskgraphs = await asyncio.gather(*tasks)
 
     costs = list()
     daily_costs = defaultdict(int)
     daily_task_count = defaultdict(int)
 
+    log.debug('Calculating costs')
     worker_costs = fetch_all_worker_costs(
         tc_csv_filename=config['costs_csv_file'],
         scriptworker_csv_filename=config.get('costs_scriptworker_csv_file'),
