@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import copy
 import logging
 import os
 from collections import defaultdict
@@ -72,7 +73,8 @@ async def _semaphore_wrapper(action, args, semaphore):
 
 
 async def scan_project(project, product, config):
-
+    """Scan a project's recent history for complete task graphs."""
+    config = copy.deepcopy(config)
     cost_dataframe_columns = [
         'project', 'product', 'groupid',
         'pushid', 'graph_date', 'origin',
