@@ -225,4 +225,4 @@ def lambda_handler(args, context):
 if __name__ == '__main__':
     logging.basicConfig(level=LOG_LEVEL)
     # Use command-line arguments instead of json blob if not running in AWS Lambda
-    lambda_handler(vars(parse_args()), {})
+    lambda_handler(vars(parse_args()), {'dummy': 1})
