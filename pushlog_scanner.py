@@ -13,7 +13,7 @@ from measuring_ci.costs import fetch_all_worker_costs
 from measuring_ci.pushlog import scan_pushlog
 from taskhuddler.aio.graph import TaskGraph
 
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 
 # AWS artisinal log handling, they've already set up a handler by the time we get here
 log = logging.getLogger()
@@ -93,7 +93,7 @@ async def scan_project(project, product, config):
     config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
         project=project.replace('/', '_'))
 
-    log.debug("Looking up pushlog")
+    log.info("Looking up pushlog for {}".format(project))
     pushes = await scan_pushlog(config['pushlog_url'],
                                 project=project,
                                 product=product,
@@ -114,14 +114,14 @@ async def scan_project(project, product, config):
     for push in pushes[project]:
         log.debug("Examining push %s", push)
         if str(push) in existing_costs['pushid'].values:
-            log.info("Already examined push %s, skipping.", push)
+            log.debug("Already examined push %s, skipping.", push)
             continue
         if probably_finished(pushes[project][push]['date']):
             graph_id = pushes[project][push]['taskgraph']
             if not graph_id or graph_id == '':
-                log.info("Couldn't find graph id for push {}".format(push))
+                log.warning("Couldn't find graph id for {} push {}".format(project, push))
                 continue
-            log.info("Push %s, Graph ID: %s", push, graph_id)
+            log.debug("Push %s, Graph ID: %s", push, graph_id)
             tasks.append(asyncio.ensure_future(
                 _semaphore_wrapper(
                     TaskGraph,
@@ -130,14 +130,14 @@ async def scan_project(project, product, config):
                 )))
         else:
             log.info("Push %s probably not finished, skipping", push)
-    log.debug('Gathering task graphs')
+    log.info('Gathering task graphs')
     taskgraphs = await asyncio.gather(*tasks)
 
     costs = list()
     daily_costs = defaultdict(int)
     daily_task_count = defaultdict(int)
 
-    log.debug('Calculating costs')
+    log.info('Calculating costs')
     worker_costs = fetch_all_worker_costs(
         tc_csv_filename=config['costs_csv_file'],
         scriptworker_csv_filename=config.get('costs_scriptworker_csv_file'),

@@ -65,19 +65,20 @@ async def scan_pushlog(pushlog_url,
         url = pushlog_url.format(project=project)
         if backfill_count:
             if starting_push:
-                log.debug('Backfilling {} earlier pushes'.format(backfill_count))
+                log.info('Backfilling {} earlier pushes'.format(backfill_count))
                 first_known = int(min(pushes[project].keys()))
                 url += "&startID={}&endID={}".format(first_known - backfill_count - 1,
                                                      first_known - 1)
             else:
-                log.debug("Can't backfill until we have some pushlog data already cached")
+                log.warning("Can't backfill until we have some pushlog data already cached, "
+                            "ignoring backfill_count on this run and polling tipmost pushes")
         elif starting_push:
             url += "&startID={}".format(starting_push)
         log.debug("Querying push url %s", url)
         response = await session.get(url)
         new_pushes = await response.json()
         for push in new_pushes.get('pushes', list()):
-            log.debug("Examining push %s", push)
+            log.debug("Inspecting push %s", push)
             epoch = new_pushes['pushes'][push]['date']
             # This is the cset used for CI indexing.
             final_cset = new_pushes['pushes'][push]['changesets'][-1]
@@ -88,7 +89,8 @@ async def scan_pushlog(pushlog_url,
                 product=product,
             )
             if not graph_id:
-                log.info("Couldn't find task graph for revision %s", final_cset)
+                log.warning("Couldn't find task graph for {} revision {}".format(project,
+                                                                                 final_cset))
                 graph_id = ""
             pushes[project][push] = {
                 "date": epoch,
