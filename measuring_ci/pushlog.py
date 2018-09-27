@@ -8,8 +8,6 @@ import aiohttp
 from .files import open_wrapper
 from .revision import find_taskgroup_by_revision
 
-logging.basicConfig(level=logging.DEBUG)
-
 log = logging.getLogger()
 
 

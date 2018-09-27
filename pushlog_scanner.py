@@ -13,9 +13,14 @@ from measuring_ci.costs import fetch_all_worker_costs
 from measuring_ci.pushlog import scan_pushlog
 from taskhuddler.aio.graph import TaskGraph
 
-logging.basicConfig(level=logging.DEBUG)
+LOG_LEVEL = logging.DEBUG
 
+# AWS artisinal log handling, they've already set up a handler by the time we get here
 log = logging.getLogger()
+log.setLevel(LOG_LEVEL)
+# some modules are very chatty
+logging.getLogger("taskcluster").setLevel(logging.INFO)
+logging.getLogger("aiohttp").setLevel(logging.INFO)
 
 
 def parse_args():
@@ -215,5 +220,6 @@ def lambda_handler(args, context):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=LOG_LEVEL)
     # Use command-line arguments instead of json blob if not running in AWS Lambda
     lambda_handler(vars(parse_args()), {})

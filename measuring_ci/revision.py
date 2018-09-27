@@ -2,8 +2,6 @@ import logging
 
 import taskcluster
 
-logging.basicConfig(level=logging.DEBUG)
-
 log = logging.getLogger()
 
 
