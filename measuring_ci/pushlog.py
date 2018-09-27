@@ -17,6 +17,7 @@ async def scan_pushlog(pushlog_url,
                        project='mozilla-central',
                        product='firefox',
                        starting_push=None,
+                       backfill_count=None,
                        cache_file=None):
     """Scan through the pushlog for entries.
 
@@ -25,6 +26,7 @@ async def scan_pushlog(pushlog_url,
         project (str): mozilla-central, releases/mozilla-release or similar
         product (str): Used for finding the taskgraph. e.g. 'firefox'
         starting_push (int): push ID to start from. Defaults to most recent 10
+        backfill_count (int): number of older pushes to retrieve, prior to the oldest known push
         cache_file (str): Path to cached results. Understands s3:// syntax
 
     Returns:
@@ -63,7 +65,15 @@ async def scan_pushlog(pushlog_url,
                                      connector=connector,
                                      timeout=timeout) as session:
         url = pushlog_url.format(project=project)
-        if starting_push:
+        if backfill_count:
+            if starting_push:
+                log.debug('Backfilling {} earlier pushes'.format(backfill_count))
+                first_known = int(min(pushes[project].keys()))
+                url += "&startID={}&endID={}".format(first_known - backfill_count - 1,
+                                                     first_known - 1)
+            else:
+                log.debug("Can't backfill until we have some pushlog data already cached")
+        elif starting_push:
             url += "&startID={}".format(starting_push)
         log.debug("Querying push url %s", url)
         response = await session.get(url)
@@ -89,5 +99,5 @@ async def scan_pushlog(pushlog_url,
             }
     if cache_file:
         with open_wrapper(cache_file, 'w') as f:
-            json.dump(pushes, f, indent=4)
+            json.dump(pushes, f, indent=4, sort_keys=True)
     return pushes

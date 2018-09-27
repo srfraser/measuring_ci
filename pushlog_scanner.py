@@ -93,6 +93,7 @@ async def scan_project(project, product, config):
                                 project=project,
                                 product=product,
                                 # starting_push=34612,
+                                backfill_count=config['backfill_count'],
                                 cache_file=config['pushlog_cache_file'])
 
     try:
@@ -196,6 +197,7 @@ async def main(args):
     with open(args['config'], 'r') as y:
         config = yaml.load(y)
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
+    config['backfill_count'] = args.get('backfill_count', None)
 
     # cope with original style, listing one project, or listing multiple
     for project in args.get('projects', [args.get('project')]):
