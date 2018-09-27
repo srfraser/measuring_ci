@@ -32,7 +32,7 @@ async def find_taskgroup_by_revision(
         build_task = await idx.findTask(index)
         task_def = await queue.task(build_task['taskId'])
     except taskcluster.exceptions.TaskclusterRestFailure as e:
-        log.debug("Taskcluster error", e)
+        log.debug(e)
         return
 
     return task_def['taskGroupId']
