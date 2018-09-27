@@ -194,6 +194,9 @@ async def scan_project(project, product, config):
     # index so the columns operate as expected.
     daily_costs_df = daily_costs_df.add(new_daily_costs, fill_value=0).reset_index()
 
+    # sometimes we end up with float taskcounts
+    daily_costs_df.taskcount = daily_costs_df.taskcount.astype(int)
+
     log.info("Writing parquet file %s", config['daily_totals_output'])
     daily_costs_df.to_parquet(config['daily_totals_output'], compression='gzip')
 
