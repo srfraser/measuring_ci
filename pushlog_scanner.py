@@ -111,6 +111,8 @@ async def scan_project(project, product, config):
     semaphore = asyncio.Semaphore(10)
     tasks = list()
 
+    count_no_graph_id = 0
+    count_not_finished = 0
     for push in pushes[project]:
         log.debug("Examining push %s", push)
         if str(push) in existing_costs['pushid'].values:
@@ -119,7 +121,8 @@ async def scan_project(project, product, config):
         if probably_finished(pushes[project][push]['date']):
             graph_id = pushes[project][push]['taskgraph']
             if not graph_id or graph_id == '':
-                log.warning("Couldn't find graph id for {} push {}".format(project, push))
+                log.debug("Couldn't find graph id for {} push {}".format(project, push))
+                count_no_graph_id += 1
                 continue
             log.debug("Push %s, Graph ID: %s", push, graph_id)
             tasks.append(asyncio.ensure_future(
@@ -129,8 +132,12 @@ async def scan_project(project, product, config):
                     semaphore=semaphore,
                 )))
         else:
-            log.info("Push %s probably not finished, skipping", push)
-    log.info('Gathering task graphs')
+            log.debug("Push %s probably not finished, skipping", push)
+            count_not_finished += 1
+    log.info('{} pushes without a graph_id; skipping {} probably not finished yet'.format(
+        count_no_graph_id, count_not_finished))
+
+    log.info('Gathering task {} graphs'.format(len(tasks)))
     taskgraphs = await asyncio.gather(*tasks)
 
     costs = list()
