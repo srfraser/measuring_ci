@@ -40,7 +40,7 @@ SITE_PACKAGES=$(find ${VENV_NAME} -type d -name site-packages)
 # plotly/ipython are huge, and there's a 256Mb unzipped size limit
 # for the env we upload.
 
-rsync -av --exclude "*boto*" --exclude "*pip*" --exclude "*plotly*" --exclude "*ipython*" --exclude "*jupyter*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
+rsync -av --exclude "*boto*" --exclude "*pip*" --exclude "*plotly*" --exclude "*ipython*" --exclude "*jupyter*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
 
 # mv  "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
 # rm -fr "${STAGING_DIR}"/plotly*
