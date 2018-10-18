@@ -31,10 +31,9 @@ aiohttp==3.4.4 \
     --hash=sha256:b24e7845ae8de3e388ef4bcfcf7f96b05f52c8e633b33cf8003a6b1d726fc7c2 \
     --hash=sha256:589f2ec8a101a0f340453ee6945bdfea8e1cd84c8d88e5be08716c34c0799d95 \
     --hash=sha256:51afec6ffa50a9da4cdef188971a802beb1ca8e8edb40fa429e5e529db3475fa
-async-timeout==3.0.0 \
-    --hash=sha256:474d4bc64cee20603e225eb1ece15e248962958b45a3648a9f5cc29e827a610c \
-    --hash=sha256:b3c0ddc416736619bd4a95ca31de8da6920c3b9a140c64dbef2b2fa7bf521287 \
-    # via aiohttp, taskcluster
+async-timeout==3.0.1 \
+    --hash=sha256:4291ca197d287d274d0b6cb5d6f8f8f82d434ed288f962539ff18cc9012f9ea3 \
+    --hash=sha256:0c3c816a028d47f659d6ff5c745cb2acf1f966da1fe5c19c77a70282b25f4c5f    # via aiohttp, taskcluster
 asyncinit==0.2.3 \
     --hash=sha256:c9ca71891a8ae9d9a6efd7070fc1d1f8afa7b38fd873a47f351ea7c9092583d8 \
     --hash=sha256:a8d8fded72541e39361973d86d6df829ed85b472309747f167eb9510580342f0
