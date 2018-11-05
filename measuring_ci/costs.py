@@ -1,3 +1,6 @@
+from collections import defaultdict
+from datetime import timedelta
+
 import pandas as pd
 
 
@@ -33,3 +36,31 @@ def fetch_all_worker_costs(tc_csv_filename, scriptworker_csv_filename):
         sw_df = fetch_worker_costs(scriptworker_csv_filename)
         df = df.append(sw_df)
     return df
+
+
+def taskgraph_cost(graph, worker_costs):
+    """Calculate the cost of a taskgraph."""
+    total_wall_time_buckets = defaultdict(timedelta)
+    final_task_wall_time_buckets = defaultdict(timedelta)
+    for task in graph.tasks():
+        key = task.json['status']['workerType']
+        total_wall_time_buckets[key] += sum(task.run_durations(), timedelta(0))
+        if task.completed:
+            final_task_wall_time_buckets[key] += task.resolved - task.started
+
+    total_cost = 0.0
+    final_task_costs = 0.0
+
+    for bucket in total_wall_time_buckets:
+        if bucket not in worker_costs.index:
+            continue
+
+        hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
+        cost = worker_costs.at[bucket, 'unit_cost'] * hours
+        total_cost += cost
+
+        hours = final_task_wall_time_buckets[bucket].total_seconds() / (60 * 60)
+        cost = worker_costs.at[bucket, 'unit_cost'] * hours
+        final_task_costs += cost
+
+    return total_cost, final_task_costs

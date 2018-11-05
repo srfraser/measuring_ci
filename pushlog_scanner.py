@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import yaml
 
-from measuring_ci.costs import fetch_all_worker_costs
+from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
 from measuring_ci.pushlog import scan_pushlog
 from taskhuddler.aio.graph import TaskGraph
 
@@ -39,33 +39,6 @@ def probably_finished(timestamp):
     if datetime.now() - timestamp > timedelta(days=1):
         return True
     return False
-
-
-def taskgraph_cost(graph, worker_costs):
-    total_wall_time_buckets = defaultdict(timedelta)
-    final_task_wall_time_buckets = defaultdict(timedelta)
-    for task in graph.tasks():
-        key = task.json['status']['workerType']
-        total_wall_time_buckets[key] += sum(task.run_durations(), timedelta(0))
-        if task.completed:
-            final_task_wall_time_buckets[key] += task.resolved - task.started
-
-    total_cost = 0.0
-    final_task_costs = 0.0
-
-    for bucket in total_wall_time_buckets:
-        if bucket not in worker_costs.index:
-            continue
-
-        hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
-        cost = worker_costs.at[bucket, 'unit_cost'] * hours
-        total_cost += cost
-
-        hours = final_task_wall_time_buckets[bucket].total_seconds() / (60 * 60)
-        cost = worker_costs.at[bucket, 'unit_cost'] * hours
-        final_task_costs += cost
-
-    return total_cost, final_task_costs
 
 
 def find_push_by_group(group_id, project, pushes):

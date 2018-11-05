@@ -1,0 +1,4 @@
+costs_csv_file: 's3://mozilla-releng-metrics/measuring_ci/aws_cost_estimates.csv'
+costs_scriptworker_csv_file: 's3://mozilla-releng-metrics/measuring_ci/aws_cost_estimates_scriptworker.csv'
+TC_CACHE_DIR: 's3://mozilla-releng-metrics/taskgraph_cache/'
+total_cost_output: 's3://mozilla-releng-metrics/measuring_ci/v2/costs/nightlies.parquet'

@@ -16,16 +16,10 @@ OUTPUT_FILENAME="$(pwd)/measuring_ci.zip"
 
 mkdir -p "${STAGING_DIR}"
 
-cp -pr "pushlog_scanner.py" "${STAGING_DIR}/lambda_function.py"
+cp -pr "pushlog_scanner.py" "${STAGING_DIR}/"
+cp -pr "releases_scanner.py" "${STAGING_DIR}/"
 
-cp -p "scanner.yml" "${STAGING_DIR}/scanner.yml"
-
-if ! grep -q "def lambda_handler" "${STAGING_DIR}/lambda_function.py"
-then
-    echo ""
-    echo "*** No lambda_handler function found, remember to set the handler when uploading the zip file."
-    echo ""
-fi
+cp -p *.yml "${STAGING_DIR}/"
 
 cp -pr "measuring_ci" "${STAGING_DIR}"
 
@@ -75,7 +69,7 @@ echo "2. Visit https://console.aws.amazon.com/lambda/home?region=us-east-1#/func
 echo "ARN - arn:aws:lambda:us-east-1:314336048151:function:measuring_ci_parquet_update"
 echo "3. Under 'Function code' choose a 'Code entry type' of 'Upload a file from Amazon S3'"
 echo "Paste the above s3 url into the box"
-echo "4. Ensure the Handler is set correctly if not using lambda_handler() in lambda_function.py"
+echo "4. Ensure the Handler is set correctly if not using lambda_function:lambda_handler()"
 echo "5. Under 'Basic Settings' ensure the Memory usage is at 512Mb and Timeout is at least 2 minutes."
 echo "6. Click 'Save' at the top of the page"
 
