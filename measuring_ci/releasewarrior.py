@@ -5,35 +5,16 @@ https://github.com/mozilla-releng/releasewarrior-data
 
 Lots of assumptions here about the directory structure inside releasewarrior-data.
 """
-import glob
 import json
-import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from sh import git
-
-
-def clone_releasewarrior_data(dest_path="releasewarrior-data"):
-    """Clone the releasewarrior-data repository.
-
-    We're not interested in the history, so limit the depth of the clone.
-    """
-    if not dest_path.startswith('/'):
-        dest_path = os.path.join(os.getcwd(), dest_path)
-    if os.path.exists(dest_path):
-        if os.path.exists(os.path.join(dest_path, '.git')):
-            git('-C', dest_path, 'pull')
-        else:
-            raise ValueError('Path exists and is not a git repository: {}'.format(dest_path))
-    else:
-        git('clone', '--depth', '10', 'https://github.com/mozilla-releng/releasewarrior-data', dest_path)
-    return dest_path
+from github import Github
 
 
-def fetch_release_data(json_path):
+def fetch_release_data(file_contents):
     """Extract useful fields from a releasewarrior data file."""
-    with open(json_path) as f:
-        release_data = json.load(f)
+
+    release_data = json.loads(file_contents)
 
     # print("release_data[version]: ", release_data['version'])
     # version = FirefoxVersion.parse(release_data['version'])
@@ -82,28 +63,34 @@ def fetch_release_data(json_path):
     return graphs
 
 
-def read_release_taskgraph_ids(repo_path, since=None):
+def read_release_taskgraph_ids(repository='mozilla-releng/releasewarrior-data', token=None):
     """Find releasewarrior data files.
 
     Args:
-        repo_path (str): Path to clone of releasewarrior-data repository.
+        repository (str): organisation/repo of releasewarrior-data repository.
         since (str|datetime): How much of the git history to examine. Default: all.
     """
-    glob_files = list()
-    for path in glob.glob("{}/inflight/**/*.json".format(repo_path)) + glob.glob("{}/archive/**/*.json".format(repo_path)):
-        glob_files.append(path)
+    since = datetime.now() - timedelta(days=6)
 
-    if since:
-        if isinstance(since, datetime):
-            since = since.strftime("%Y-%m-%d")
-        git_out = git('--no-pager', '-C', repo_path, 'log',
-                      '--since="{}"'.format(since), '--name-only', '--pretty=format:')
-        git_files = [os.path.join(repo_path, g) for g in git_out.splitlines()]
-        paths = set(git_files) & set(glob_files)
+    if token:
+        g = Github(token)
     else:
-        paths = glob_files
+        g = Github()  # May encounter rate limits.
+    repo = g.get_repo(repository)
+    commits = repo.get_commits(since=since)
+
+    paths = set()
+    for commit in commits:
+        for file_obj in list(commit.files):
+            if not file_obj.filename.endswith('.json'):
+                continue
+            if not file_obj.filename.startswith('archive'):  # Guarantees completed taskgraphs.
+                continue
+            paths.add(file_obj.filename)
 
     graphs = dict()
     for path in paths:
-        graphs.update(fetch_release_data(path))
+        graphs.update(fetch_release_data(
+            repo.get_file_contents(path).decoded_content,
+        ))
     return graphs

@@ -18,6 +18,7 @@ mkdir -p "${STAGING_DIR}"
 
 cp -pr "pushlog_scanner.py" "${STAGING_DIR}/"
 cp -pr "releases_scanner.py" "${STAGING_DIR}/"
+cp -pr "nightly_scanner.py" "${STAGING_DIR}/"
 
 cp -p *.yml "${STAGING_DIR}/"
 

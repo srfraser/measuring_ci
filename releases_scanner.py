@@ -8,7 +8,7 @@ import pandas as pd
 import yaml
 
 from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
-from measuring_ci.releasewarrior import clone_releasewarrior_data, read_release_taskgraph_ids
+from measuring_ci.releasewarrior import read_release_taskgraph_ids
 from taskhuddler.aio.graph import TaskGraph
 
 LOG_LEVEL = logging.INFO
@@ -50,7 +50,7 @@ def categorize_version(product, version):
     return 'release'
 
 
-async def scan_releases(config, repo_path):
+async def scan_releases(config):
     """Scan recent history for complete task graphs."""
     config = copy.deepcopy(config)
     cost_dataframe_columns = [
@@ -71,7 +71,10 @@ async def scan_releases(config, repo_path):
         existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
 
     log.info("Looking up taskgraph IDs")
-    taskgraph_ids = read_release_taskgraph_ids(repo_path, config.get('since'))
+    taskgraph_ids = read_release_taskgraph_ids(
+        config['releasewarrior-data-repo'],
+        config['github_token'],
+    )
     log.info("Found %d taskgraph IDs", len(taskgraph_ids))
 
     tasks = list()
@@ -102,20 +105,22 @@ async def scan_releases(config, repo_path):
         full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
         product = taskgraph_ids[graph.groupid]['product']
         version = taskgraph_ids[graph.groupid]['version'].replace('rc', '')
-
-        costs.append(
-            [
-                product,
-                graph.groupid,
-                graph.earliest_start_time.strftime("%Y-%m-%d"),  # date bucket
-                categorize_version(product, version),
-                taskgraph_ids[graph.groupid]['phase'],
-                version,
-                taskgraph_ids[graph.groupid]['build_number'],
-                full_cost,
-                final_runs_cost,
-                len([t for t in graph.tasks()]),  # task count
-            ])
+        try:
+            costs.append(
+                [
+                    product,
+                    graph.groupid,
+                    graph.earliest_start_time.strftime("%Y-%m-%d"),  # date bucket
+                    categorize_version(product, version),
+                    taskgraph_ids[graph.groupid]['phase'],
+                    version,
+                    taskgraph_ids[graph.groupid]['build_number'],
+                    full_cost,
+                    final_runs_cost,
+                    len([t for t in graph.tasks()]),  # task count
+                ])
+        except Exception as e:
+            log.warning('Something screwy with %s, skipping that graph: %s', graph.groupid, e)
 
     costs_df = pd.DataFrame(costs, columns=cost_dataframe_columns)
 
@@ -131,10 +136,7 @@ async def main(args):
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
     config['backfill_count'] = args.get('backfill_count', None)
 
-    # the path gets fully qualified
-    repo_path = clone_releasewarrior_data(config['releasewarrior-data-path'])
-
-    await scan_releases(config, repo_path)
+    await scan_releases(config)
 
 
 def lambda_handler(args, context):
