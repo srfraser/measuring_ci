@@ -8,7 +8,7 @@ import pandas as pd
 import yaml
 
 from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
-from measuring_ci.releasewarrior import read_release_taskgraph_ids
+from measuring_ci.shipit import fetch_shipit_taskgraph_ids
 from taskhuddler.aio.graph import TaskGraph
 
 LOG_LEVEL = logging.INFO
@@ -68,10 +68,7 @@ async def scan_releases(config):
         existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
 
     log.info("Looking up taskgraph IDs")
-    taskgraph_ids = read_release_taskgraph_ids(
-        config['releasewarrior-data-repo'],
-        config['github_token'],
-    )
+    taskgraph_ids = fetch_shipit_taskgraph_ids()
     log.info("Found %d taskgraph IDs", len(taskgraph_ids))
 
     tasks = list()
@@ -88,7 +85,7 @@ async def scan_releases(config):
                 semaphore=semaphore,
             )))
 
-    log.info('Gathering task %d graphs', len(tasks))
+    log.info('Gathering %d task graphs', len(tasks))
     taskgraphs = await asyncio.gather(*tasks)
 
     costs = list()
