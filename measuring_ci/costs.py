@@ -4,7 +4,7 @@ from datetime import timedelta
 import pandas as pd
 
 
-def fetch_worker_costs(csv_filename):
+def fetch_worker_costs_all(csv_filename):
     """Static snapshot of data from worker_type_monthly_costs table."""
 
     df = pd.read_csv(csv_filename)
@@ -22,6 +22,11 @@ def fetch_worker_costs(csv_filename):
     if expect_columns.symmetric_difference(df.columns):
         raise ValueError("Expected worker_type_monthly_costs to have a specific set of columns.")
 
+    return df
+
+
+def fetch_worker_costs(csv_filename):
+    df = fetch_worker_costs_all(csv_filename)
     # Sort newest first, ensures we keep current values
     df.sort_values(by=["year", "month"], ascending=False, inplace=True)
     df.drop_duplicates('worker_type', inplace=True)
