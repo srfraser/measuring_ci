@@ -93,10 +93,9 @@ jupyter-core==4.4.0 \
     --hash=sha256:927d713ffa616ea11972534411544589976b2493fc7e09ad946e010aa7eb9970 \
     --hash=sha256:ba70754aa680300306c699790128f6fbd8c306ee5927976cbe48adacf240c0b7 \
     # via nbformat
-mohawk==0.3.4 \
-    --hash=sha256:b3f85ffa93a5c7d2f9cc591246ef9f8ac4a9fa716bfd5bae0377699a2d89d78c \
-    --hash=sha256:e98b331d9fa9ece7b8be26094cbe2d57613ae882133cc755167268a984bc0ab3 \
-    # via taskcluster
+mohawk==1.0.0 \
+    --hash=sha256:aa57e6626a6ea323ab714779f23734de1d1feca8cb6fc00b65e65ce115c1696a \
+    --hash=sha256:fca4e34d8f5492f1c33141c98b96e168a089e5692ce65fb747e4bb613f5fe552    # via taskcluster
 multidict==4.5.2 \
     --hash=sha256:024b8129695a952ebd93373e45b5d341dbb87c17ce49637b34000093f243dd4f \
     --hash=sha256:041e9442b11409be5e4fc8b6a97e4bcead758ab1e11768d1e69160bdde18acc3 \
