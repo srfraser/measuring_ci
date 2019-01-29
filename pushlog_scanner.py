@@ -57,8 +57,13 @@ async def scan_project(project, product, config):
         'project', 'product', 'groupid',
         'pushid', 'graph_date', 'origin',
         'totalcost', 'idealcost', 'taskcount',
+        'compute_time',
     ]
-    daily_dataframe_columns = ['project', 'product', 'ci_date', 'origin', 'totalcost', 'taskcount']
+    daily_dataframe_columns = [
+        'project', 'product', 'ci_date',
+        'origin', 'totalcost', 'taskcount',
+        'compute_time',
+    ]
 
     short_project = project.split('/')[-1]
     config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
@@ -116,6 +121,7 @@ async def scan_project(project, product, config):
     costs = list()
     daily_costs = defaultdict(int)
     daily_task_count = defaultdict(int)
+    daily_time_used = defaultdict(timedelta(0))
 
     log.info('Calculating costs')
     worker_costs = fetch_all_worker_costs(
@@ -129,6 +135,7 @@ async def scan_project(project, product, config):
         date_bucket = graph.earliest_start_time.strftime("%Y-%m-%d")
         daily_costs[date_bucket] += full_cost
         daily_task_count[date_bucket] += task_count
+        daily_time_used[date_bucket] += graph.total_compute_time()
         costs.append(
             [
                 short_project,
@@ -140,6 +147,7 @@ async def scan_project(project, product, config):
                 full_cost,
                 final_runs_cost,
                 task_count,
+                graph.total_compute_time().total_seconds(),
             ])
 
     costs_df = pd.DataFrame(costs, columns=cost_dataframe_columns)
@@ -164,6 +172,7 @@ async def scan_project(project, product, config):
             'push',
             daily_costs[key],
             daily_task_count.get(key, 0),
+            daily_time_used.get(key, timedelta(0)).total_seconds(),
         ])
     new_daily_costs = pd.DataFrame(dailies, columns=daily_dataframe_columns)
 

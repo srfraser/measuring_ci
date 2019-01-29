@@ -27,11 +27,14 @@ def fetch_worker_costs_all(csv_filename):
 
 def fetch_worker_costs(csv_filename):
     df = fetch_worker_costs_all(csv_filename)
-    # Sort newest first, ensures we keep current values
-    df.sort_values(by=["year", "month"], ascending=False, inplace=True)
-    df.drop_duplicates('worker_type', inplace=True)
     df['unit_cost'] = df['cost'] / df['usage_hours']
-    df.set_index('worker_type', inplace=True)
+    # Adjustments so that method='nearest' will work.
+    # It's a bit hacky that we're choosing the 15th of a month, but it gets us an approximation of
+    # 'nearest' when we examine the date without adding first/last days of month as separate entries.
+    df['epoch'] = pd.to_datetime(df.year * 10000 + df.month * 100 + 15,
+                                 format='%Y%m%d').astype('int64') // 1e9
+    df.set_index('epoch', inplace=True)
+    df.sort_index(inplace=True)
     return df
 
 
@@ -43,10 +46,23 @@ def fetch_all_worker_costs(tc_csv_filename, scriptworker_csv_filename):
     return df
 
 
+def worker_unit_cost(costs, worker_type, date):
+    """Fetch the worker cost for the given year and month.
+
+    Will use the nearest value if that combination is missing.
+    """
+    filter_1 = costs[costs['worker_type'] == worker_type]
+    filter_1.drop_duplicates(subset=['year', 'month'], keep='last', inplace=True)
+    return filter_1.iloc[filter_1.index.get_loc(date.timestamp(), method='nearest')]['unit_cost']
+
+
 def taskgraph_cost(graph, worker_costs):
     """Calculate the cost of a taskgraph."""
     total_wall_time_buckets = defaultdict(timedelta)
     final_task_wall_time_buckets = defaultdict(timedelta)
+
+    start_date = graph.earliest_start_time
+
     for task in graph.tasks():
         key = task.json['status']['workerType']
         total_wall_time_buckets[key] += sum(task.run_durations(), timedelta(0))
@@ -56,16 +72,18 @@ def taskgraph_cost(graph, worker_costs):
     total_cost = 0.0
     final_task_costs = 0.0
 
+    known_workers = worker_costs['worker_type'].unique()
     for bucket in total_wall_time_buckets:
-        if bucket not in worker_costs.index:
+        if bucket not in known_workers:
             continue
-
         hours = total_wall_time_buckets[bucket].total_seconds() / (60 * 60)
-        cost = worker_costs.at[bucket, 'unit_cost'] * hours
+        unit_cost = worker_unit_cost(worker_costs, worker_type=bucket, date=start_date)
+        cost = unit_cost * hours
         total_cost += cost
 
         hours = final_task_wall_time_buckets[bucket].total_seconds() / (60 * 60)
-        cost = worker_costs.at[bucket, 'unit_cost'] * hours
+        unit_cost = worker_unit_cost(worker_costs, worker_type=bucket, date=start_date)
+        cost = unit_cost * hours
         final_task_costs += cost
 
     return total_cost, final_task_costs
