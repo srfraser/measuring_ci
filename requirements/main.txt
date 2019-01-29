@@ -222,8 +222,8 @@ pycares==2.3.0 \
     --hash=sha256:f32b7c63094749fbc0c1106c9a785666ec8afd49ecfe7002a30bb7c42e62b47c \
     --hash=sha256:f50be4dd53f009cfb4b98c3c6b240e18ff9b17e3f1c320bd594bb83eddabfcb2 \
     # via aiodns
-pygithub==1.43.4 \
-    --hash=sha256:5d3e3bdee80be63a1e5aaca5689ff450a4e7f7dfac728577fdb9caac080c5479
+pygithub==1.43.5 \
+    --hash=sha256:263102b43a83e2943900c1313109db7a00b3b78aeeae2c9137ba694982864872
 pyjwt==1.7.1 \
     --hash=sha256:5c6eca3c2940464d106b99ba83b00c6add741c9becaec087fb7ccdefea71350e \
     --hash=sha256:8d59a976fb773f3e6a39c85636357c4f0e242707394cadadd9814f5cbaa20e96 \
