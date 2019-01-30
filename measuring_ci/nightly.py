@@ -5,6 +5,8 @@ from datetime import datetime
 import taskcluster
 import yaml
 
+from .utils import tc_options
+
 log = logging.getLogger()
 
 
