@@ -27,8 +27,8 @@ async def fetch_nightlies(date, project='mozilla-central'):
         date=sanitize_date(date),
     )
 
-    idx = taskcluster.aio.Index({'rootUrl': 'https://taskcluster.net/'})
-    queue = taskcluster.aio.Queue({'rootUrl': 'https://taskcluster.net/'})
+    idx = taskcluster.aio.Index(options=tc_options())
+    queue = taskcluster.aio.Queue(options=tc_options())
 
     ret = await idx.listNamespaces(index)
 
@@ -64,7 +64,7 @@ async def fetch_nightlies(date, project='mozilla-central'):
             }
             # Find the version, hidden in the parameters of the
             # decision task's artifacts
-            sync_queue = taskcluster.Queue({'rootUrl': 'https://taskcluster.net/'})
+            sync_queue = taskcluster.Queue(options=tc_options())
             parameters_response = sync_queue.getLatestArtifact(taskId=task_def['taskGroupId'], name='public/parameters.yml')
             # print(parameters_response)
 
