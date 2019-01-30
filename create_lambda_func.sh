@@ -43,7 +43,7 @@ rsync -av --exclude "*boto*" --exclude "*pip*" --exclude "*plotly*" --exclude "*
 # rm -fr "${STAGING_DIR}"/ipython*
 
 # Not yet pip installable
-git clone https://github.com/srfraser/taskhuddler "${STAGING_DIR}/taskhuddler_stage"
+git clone https://github.com/mozilla-releng/taskhuddler "${STAGING_DIR}/taskhuddler_stage"
 mv "${STAGING_DIR}/taskhuddler_stage/taskhuddler" "${STAGING_DIR}/taskhuddler"
 rm -fr "${STAGING_DIR}/taskhuddler_stage"
 
