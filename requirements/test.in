@@ -5,4 +5,3 @@ flake8
 flake8-commas
 flake8_docstrings
 flake8-isort
-flake8-per-file-ignores

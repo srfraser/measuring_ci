@@ -8,7 +8,6 @@ taskcluster
 boto3
 s3fs
 pyyaml
-pygithub
 # Taskhuddler is required but not yet available as a package
 # -e git+https://github.com/srfraser/taskhuddler#egg=taskhuddler
 
