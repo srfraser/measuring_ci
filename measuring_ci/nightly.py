@@ -27,8 +27,8 @@ async def fetch_nightlies(date, project='mozilla-central'):
         date=sanitize_date(date),
     )
 
-    idx = taskcluster.aio.Index()
-    queue = taskcluster.aio.Queue()
+    idx = taskcluster.aio.Index({'rootUrl': 'https://taskcluster.net/'})
+    queue = taskcluster.aio.Queue({'rootUrl': 'https://taskcluster.net/'})
 
     ret = await idx.listNamespaces(index)
 
