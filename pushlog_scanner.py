@@ -121,7 +121,7 @@ async def scan_project(project, product, config):
     costs = list()
     daily_costs = defaultdict(int)
     daily_task_count = defaultdict(int)
-    daily_time_used = defaultdict(timedelta(0))
+    daily_time_used = defaultdict(timedelta)
 
     log.info('Calculating costs')
     worker_costs = fetch_all_worker_costs(
