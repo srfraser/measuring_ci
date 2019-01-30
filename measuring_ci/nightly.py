@@ -64,7 +64,7 @@ async def fetch_nightlies(date, project='mozilla-central'):
             }
             # Find the version, hidden in the parameters of the
             # decision task's artifacts
-            sync_queue = taskcluster.Queue()
+            sync_queue = taskcluster.Queue({'rootUrl': 'https://taskcluster.net/'})
             parameters_response = sync_queue.getLatestArtifact(taskId=task_def['taskGroupId'], name='public/parameters.yml')
             # print(parameters_response)
 
