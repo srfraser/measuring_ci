@@ -138,7 +138,7 @@ async def scan_project(project, product, config):
     for graph in taskgraphs:
         push = find_push_by_group(graph.groupid, project, pushes)
         full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
-        artifact_size, artifact_cost = get_artifact_costs(graph)
+        artifact_size, artifact_cost = await get_artifact_costs(graph)
         task_count = len([t for t in graph.tasks()])
         date_bucket = graph.earliest_start_time.strftime("%Y-%m-%d")
         daily_costs[date_bucket] += full_cost

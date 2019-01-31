@@ -90,7 +90,7 @@ async def scan_releases(config):
     )
     for graph in taskgraphs:
         full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
-        artifact_size, artifact_cost = get_artifact_costs(graph)
+        artifact_size, artifact_cost = await get_artifact_costs(graph)
         product = taskgraph_ids[graph.groupid]['product']
         version = taskgraph_ids[graph.groupid]['version'].replace('rc', '')
         try:

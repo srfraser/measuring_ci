@@ -85,7 +85,7 @@ async def scan_nightlies(config):
     )
     for graph in nightlies:
         full_cost, final_runs_cost = taskgraph_cost(nightlies[graph]['graph'], worker_costs)
-        artifact_size, artifact_cost = get_artifact_costs(graph)
+        artifact_size, artifact_cost = await get_artifact_costs(graph)
 
         costs.append(
             [
