@@ -10,6 +10,8 @@ import yaml
 
 from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
 from measuring_ci.nightly import fetch_nightlies
+from measuring_ci.utils import semaphore_wrapper
+from measuring_ci.artifacts import get_artifact_costs
 from taskhuddler.aio.graph import TaskGraph
 
 LOG_LEVEL = logging.INFO
@@ -43,6 +45,8 @@ async def scan_nightlies(config):
         'revision', 'graph_date',
         'version', 'totalcost',
         'idealcost', 'taskcount',
+        'compute_time', 'artifact_size',
+        'artifact_projected_cost',
     ]
 
     try:
@@ -63,12 +67,7 @@ async def scan_nightlies(config):
         if str(graph_id) in existing_costs['groupid'].values:
             log.debug("Already examined taskgroup %s, skipping.", graph_id)
             continue
-        tasks.append(asyncio.ensure_future(
-            _semaphore_wrapper(
-                TaskGraph,
-                args=(graph_id,),
-                semaphore=semaphore,
-            )))
+        tasks.append(asyncio.ensure_future(semaphore_wrapper(semaphore, TaskGraph(graph_id))))
 
     log.info('Gathering task %d graphs', len(tasks))
 
@@ -86,6 +85,7 @@ async def scan_nightlies(config):
     )
     for graph in nightlies:
         full_cost, final_runs_cost = taskgraph_cost(nightlies[graph]['graph'], worker_costs)
+        artifact_size, artifact_cost = get_artifact_costs(graph)
 
         costs.append(
             [
@@ -97,6 +97,9 @@ async def scan_nightlies(config):
                 full_cost,
                 final_runs_cost,
                 len([t for t in nightlies[graph]['graph'].tasks()]),  # task count
+                graph.total_compute_time().total_seconds(),
+                artifact_size,
+                artifact_cost,
             ])
 
     costs_df = pd.DataFrame(costs, columns=cost_dataframe_columns)

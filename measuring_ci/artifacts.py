@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-import argparse
 import asyncio
 import logging
 from functools import partial
@@ -9,14 +7,13 @@ import boto3
 import dateutil.parser
 from taskcluster.aio import Queue
 
-from taskhuddler.aio.graph import TaskGraph
 from taskhuddler.utils import tc_options, semaphore_wrapper
 
 log = logging.getLogger(__name__)
 
 
 async def get_tc_run_artifacts(taskid, runid):
-    log.info('Fetching TC artifact info for %s/%s', taskid, runid)
+    log.debug('Fetching TC artifact info for %s/%s', taskid, runid)
     artifacts = []
     query = {}
     async with aiohttp.ClientSession() as session:
@@ -80,11 +77,9 @@ def merge_artifacts(tc_artifacts, s3_artifacts):
     return retval
 
 
-async def get_artifact_costs(groupid):
-    log.info("Fetching taskgroup %s", groupid)
-    group = await TaskGraph(groupid)
-
-    log.info("Fetching TC artifact info")
+async def get_artifact_costs(group):
+    """Calculate artifact costs for a given task graph."""
+    log.info("Fetching Taskcluster artifact info for %s", str(group))
     sem = asyncio.Semaphore(10)
 
     tc_tasks = []
@@ -128,21 +123,3 @@ async def get_artifact_costs(groupid):
         task_cost += cost
 
     return task_size, task_cost
-
-
-async def main(args):
-    size, cost = await get_artifact_costs(args.groupid)
-    print(f'Size: {size:,d}; cost: ${cost:,.2f}')
-
-
-def parse_args():
-    parser = argparse.ArgumentParser('Artifact costs')
-    parser.add_argument('groupid')
-    return parser.parse_args()
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-    loop = asyncio.get_event_loop()
-    args = parse_args()
-    loop.run_until_complete(main(args))

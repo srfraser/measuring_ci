@@ -9,6 +9,8 @@ import yaml
 
 from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
 from measuring_ci.shipit import fetch_shipit_taskgraph_ids
+from measuring_ci.utils import semaphore_wrapper
+from measuring_ci.artifacts import get_artifact_costs
 from taskhuddler.aio.graph import TaskGraph
 
 LOG_LEVEL = logging.INFO
@@ -26,12 +28,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description="CI Costs")
     parser.add_argument('--config', type=str, default='releases.yml')
     return parser.parse_args()
-
-
-async def _semaphore_wrapper(action, args, semaphore):
-    """Wrap an async function with semaphores."""
-    async with semaphore:
-        return await action(*args)
 
 
 def categorize_version(product, version):
@@ -58,13 +54,15 @@ async def scan_releases(config):
         'graph_date', 'category',
         'phase', 'version', 'build_number',
         'totalcost', 'idealcost', 'taskcount',
+        'compute_time', 'artifact_size', 'artifact_projected_cost',
     ]
 
     try:
         existing_costs = pd.read_parquet(config['total_cost_output'])
         log.info("Loaded existing release costs")
     except Exception:
-        log.info("Couldn't load existing release costs, using empty data set: %s", config['total_cost_output'])
+        log.info("Couldn't load existing release costs, using empty data set: %s",
+                 config['total_cost_output'])
         existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
 
     log.info("Looking up taskgraph IDs")
@@ -78,12 +76,7 @@ async def scan_releases(config):
         if str(graph_id) in existing_costs['groupid'].values:
             log.debug("Already examined taskgroup %s, skipping.", graph_id)
             continue
-        tasks.append(asyncio.ensure_future(
-            _semaphore_wrapper(
-                TaskGraph,
-                args=(graph_id,),
-                semaphore=semaphore,
-            )))
+        tasks.append(asyncio.ensure_future(semaphore_wrapper(semaphore, TaskGraph(graph_id))))
 
     log.info('Gathering %d task graphs', len(tasks))
     taskgraphs = await asyncio.gather(*tasks)
@@ -97,6 +90,7 @@ async def scan_releases(config):
     )
     for graph in taskgraphs:
         full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
+        artifact_size, artifact_cost = get_artifact_costs(graph)
         product = taskgraph_ids[graph.groupid]['product']
         version = taskgraph_ids[graph.groupid]['version'].replace('rc', '')
         try:
@@ -112,6 +106,9 @@ async def scan_releases(config):
                     full_cost,
                     final_runs_cost,
                     len([t for t in graph.tasks()]),  # task count
+                    graph.total_compute_time().total_seconds(),
+                    artifact_size,
+                    artifact_cost,
                 ])
         except Exception as e:
             log.warning('Something screwy with %s, skipping that graph: %s', graph.groupid, e)

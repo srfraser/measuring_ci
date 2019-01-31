@@ -11,6 +11,8 @@ import yaml
 
 from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
 from measuring_ci.pushlog import scan_pushlog
+from measuring_ci.utils import semaphore_wrapper
+from measuring_ci.artifacts import get_artifact_costs
 from taskhuddler.aio.graph import TaskGraph
 
 LOG_LEVEL = logging.INFO
@@ -24,6 +26,7 @@ logging.getLogger("aiohttp").setLevel(logging.INFO)
 
 
 def parse_args():
+    """Parse arguments if run on command line."""
     parser = argparse.ArgumentParser(description="CI Costs")
     parser.add_argument('--project', type=str, default='mozilla-central')
     parser.add_argument('--product', type=str, default='firefox')
@@ -42,12 +45,49 @@ def probably_finished(timestamp):
 
 
 def find_push_by_group(group_id, project, pushes):
+    """Find the correct push for a task graph."""
     return next(push for push in pushes[project] if pushes[project][push]['taskgraph'] == group_id)
 
 
-async def _semaphore_wrapper(action, args, semaphore):
-    async with semaphore:
-        return await action(*args)
+def load_parquet(filename, columns):
+    """Load existing parquet file or an empty one."""
+    try:
+        df = pd.read_parquet(filename)
+        log.info("Loaded %s", filename)
+    except Exception as exc:
+        log.info("Couldn't load %s, using empty data set (%s)", filename, exc)
+        df = pd.DataFrame(columns=columns)
+    return df
+
+
+async def fetch_taskgraphs_for_pushes(pushes, project, known_pushes):
+    """Return TaskGraph objects for all provided pushes."""
+    semaphore = asyncio.Semaphore(10)
+    tasks = list()
+
+    count_no_graph_id = 0
+    count_not_finished = 0
+    for push in pushes[project]:
+        log.debug("Examining push %s", push)
+        if str(push) in known_pushes:
+            log.debug("Already examined push %s, skipping.", push)
+            continue
+        if probably_finished(pushes[project][push]['date']):
+            graph_id = pushes[project][push]['taskgraph']
+            if not graph_id or graph_id == '':
+                log.debug("Couldn't find graph id for %s push %s", project, push)
+                count_no_graph_id += 1
+                continue
+            log.debug("Push %s, Graph ID: %s", push, graph_id)
+            tasks.append(asyncio.ensure_future(semaphore_wrapper(semaphore, TaskGraph(graph_id))))
+        else:
+            log.debug("Push %s probably not finished, skipping", push)
+            count_not_finished += 1
+    log.info('%d pushes without a graph_id; skipping %d probably not finished yet',
+             count_no_graph_id, count_not_finished)
+
+    log.info('Gathering task %d graphs', len(tasks))
+    return await asyncio.gather(*tasks)
 
 
 async def scan_project(project, product, config):
@@ -57,12 +97,12 @@ async def scan_project(project, product, config):
         'project', 'product', 'groupid',
         'pushid', 'graph_date', 'origin',
         'totalcost', 'idealcost', 'taskcount',
-        'compute_time',
+        'compute_time', 'artifact_size', 'artifact_projected_cost'
     ]
     daily_dataframe_columns = [
         'project', 'product', 'ci_date',
         'origin', 'totalcost', 'taskcount',
-        'compute_time',
+        'compute_time', 'artifact_size', 'artifact_projected_cost'
     ]
 
     short_project = project.split('/')[-1]
@@ -71,7 +111,7 @@ async def scan_project(project, product, config):
     config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
         project=project.replace('/', '_'))
 
-    log.info("Looking up pushlog for {}".format(project))
+    log.info("Looking up pushlog for %s", project)
     pushes = await scan_pushlog(config['pushlog_url'],
                                 project=project,
                                 product=product,
@@ -79,49 +119,16 @@ async def scan_project(project, product, config):
                                 backfill_count=config['backfill_count'],
                                 cache_file=config['pushlog_cache_file'])
 
-    try:
-        existing_costs = pd.read_parquet(config['total_cost_output'])
-        log.info("Loaded existing per-push costs")
-    except Exception as e:
-        log.info("Couldn't load existing per-push costs, using empty data set", e)
-        existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
+    existing_costs = load_parquet(config['total_cost_output'], cost_dataframe_columns)
 
-    semaphore = asyncio.Semaphore(10)
-    tasks = list()
-
-    count_no_graph_id = 0
-    count_not_finished = 0
-    for push in pushes[project]:
-        log.debug("Examining push %s", push)
-        if str(push) in existing_costs['pushid'].values:
-            log.debug("Already examined push %s, skipping.", push)
-            continue
-        if probably_finished(pushes[project][push]['date']):
-            graph_id = pushes[project][push]['taskgraph']
-            if not graph_id or graph_id == '':
-                log.debug("Couldn't find graph id for {} push {}".format(project, push))
-                count_no_graph_id += 1
-                continue
-            log.debug("Push %s, Graph ID: %s", push, graph_id)
-            tasks.append(asyncio.ensure_future(
-                _semaphore_wrapper(
-                    TaskGraph,
-                    args=(graph_id,),
-                    semaphore=semaphore,
-                )))
-        else:
-            log.debug("Push %s probably not finished, skipping", push)
-            count_not_finished += 1
-    log.info('{} pushes without a graph_id; skipping {} probably not finished yet'.format(
-        count_no_graph_id, count_not_finished))
-
-    log.info('Gathering task {} graphs'.format(len(tasks)))
-    taskgraphs = await asyncio.gather(*tasks)
+    taskgraphs = await fetch_taskgraphs_for_pushes(pushes, project, existing_costs['pushid'].values)
 
     costs = list()
     daily_costs = defaultdict(int)
     daily_task_count = defaultdict(int)
     daily_time_used = defaultdict(timedelta)
+    daily_artifact_size = defaultdict(int)
+    daily_artifact_cost = defaultdict(int)
 
     log.info('Calculating costs')
     worker_costs = fetch_all_worker_costs(
@@ -131,11 +138,14 @@ async def scan_project(project, product, config):
     for graph in taskgraphs:
         push = find_push_by_group(graph.groupid, project, pushes)
         full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
+        artifact_size, artifact_cost = get_artifact_costs(graph)
         task_count = len([t for t in graph.tasks()])
         date_bucket = graph.earliest_start_time.strftime("%Y-%m-%d")
         daily_costs[date_bucket] += full_cost
         daily_task_count[date_bucket] += task_count
         daily_time_used[date_bucket] += graph.total_compute_time()
+        daily_artifact_size[date_bucket] += artifact_size
+        daily_artifact_cost[date_bucket] += artifact_cost
         costs.append(
             [
                 short_project,
@@ -148,6 +158,8 @@ async def scan_project(project, product, config):
                 final_runs_cost,
                 task_count,
                 graph.total_compute_time().total_seconds(),
+                artifact_size,
+                artifact_cost,
             ])
 
     costs_df = pd.DataFrame(costs, columns=cost_dataframe_columns)
@@ -156,12 +168,8 @@ async def scan_project(project, product, config):
     log.info("Writing parquet file %s", config['total_cost_output'])
     new_costs.to_parquet(config['total_cost_output'], compression='gzip')
 
-    try:
-        daily_costs_df = pd.read_parquet(config['daily_totals_output'])
-        log.info("Loaded existing daily totals")
-    except Exception as e:
-        log.info("Couldn't load existing daily totals, using empty data set", e)
-        daily_costs_df = pd.DataFrame(columns=daily_dataframe_columns)
+    # Daily totals
+    daily_costs_df = load_parquet(config['daily_totals_output'], daily_dataframe_columns)
 
     dailies = list()
     for key in daily_costs:
@@ -191,8 +199,9 @@ async def scan_project(project, product, config):
 
 
 async def main(args):
-    with open(args['config'], 'r') as y:
-        config = yaml.load(y)
+    """What to do."""
+    with open(args['config'], 'r') as yamlfile:
+        config = yaml.load(yamlfile)
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
     config['backfill_count'] = args.get('backfill_count', None)
 
@@ -202,6 +211,7 @@ async def main(args):
 
 
 def lambda_handler(args, context):
+    """AWS entrypoint."""
     assert context  # not current used
     if 'config' not in args:
         args['config'] = 'scanner.yml'
