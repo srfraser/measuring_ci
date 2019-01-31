@@ -2,12 +2,14 @@ import asyncio
 import logging
 from functools import partial
 
+import dateutil.parser
+
 import aiohttp
 import boto3
-import dateutil.parser
 from taskcluster.aio import Queue
+from taskhuddler.utils import tc_options
 
-from taskhuddler.utils import tc_options, semaphore_wrapper
+from .utils import semaphore_wrapper
 
 log = logging.getLogger(__name__)
 

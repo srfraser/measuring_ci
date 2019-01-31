@@ -4,13 +4,14 @@ import asyncio
 import logging
 from functools import partial
 
+import dateutil.parser
+
 import aiohttp
 import boto3
-import dateutil.parser
+from measuring_ci.utils import semaphore_wrapper
 from taskcluster.aio import Queue
-
 from taskhuddler.aio.graph import TaskGraph
-from taskhuddler.utils import tc_options, semaphore_wrapper
+from taskhuddler.utils import tc_options
 
 log = logging.getLogger(__name__)
 

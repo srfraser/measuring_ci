@@ -2,8 +2,9 @@ import asyncio
 import logging
 from datetime import datetime
 
-import taskcluster
 import yaml
+
+import taskcluster
 
 from .utils import tc_options
 

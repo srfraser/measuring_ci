@@ -3,6 +3,7 @@ import json
 import logging
 
 import aiodns  # noqa
+
 import aiohttp
 
 from .files import open_wrapper

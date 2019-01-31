@@ -8,10 +8,10 @@ from datetime import datetime, timedelta
 import pandas as pd
 import yaml
 
+from measuring_ci.artifacts import get_artifact_costs
 from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
 from measuring_ci.nightly import fetch_nightlies
 from measuring_ci.utils import semaphore_wrapper
-from measuring_ci.artifacts import get_artifact_costs
 from taskhuddler.aio.graph import TaskGraph
 
 LOG_LEVEL = logging.INFO
