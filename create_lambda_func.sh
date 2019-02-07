@@ -19,6 +19,8 @@ mkdir -p "${STAGING_DIR}"
 cp -pr "pushlog_scanner.py" "${STAGING_DIR}/"
 cp -pr "releases_scanner.py" "${STAGING_DIR}/"
 cp -pr "nightly_scanner.py" "${STAGING_DIR}/"
+cp -pr "graph_analyzer.py" "${STAGING_DIR}/"
+cp -pr "parquet_collator.py" "${STAGING_DIR}/"
 
 cp -p *.yml "${STAGING_DIR}/"
 
@@ -29,13 +31,14 @@ virtualenv -p python3 "${VENV_NAME}"
 # shellcheck disable=SC1090
 source "${VENV_NAME}/bin/activate"
 
-pip install -r requirements/main.txt
+pip install -r requirements/lambda.txt
 SITE_PACKAGES=$(find ${VENV_NAME} -type d -name site-packages)
 # boto is already included in the lambda environment
 # plotly/ipython are huge, and there's a 256Mb unzipped size limit
 # for the env we upload.
 
-rsync -av --exclude "*boto*" --exclude "*pip*" --exclude "*plotly*" --exclude "*ipython*" --exclude "*jupyter*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
+# rsync -av --exclude "*boto*" --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
+rsync -av --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
 
 # mv  "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
 # rm -fr "${STAGING_DIR}"/plotly*
@@ -66,8 +69,7 @@ echo "1. Upload $(basename "${OUTPUT_FILENAME}")"
 echo "aws s3 cp measuring_ci.zip s3://mozilla-releng-metrics/$(basename "${OUTPUT_FILENAME}")"
 echo ""
 
-echo "2. Visit https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/measuring_ci_parquet_update"
-echo "ARN - arn:aws:lambda:us-east-1:314336048151:function:measuring_ci_parquet_update"
+echo "2. Visit https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/"
 echo "3. Under 'Function code' choose a 'Code entry type' of 'Upload a file from Amazon S3'"
 echo "Paste the above s3 url into the box"
 echo "4. Ensure the Handler is set correctly if not using lambda_function:lambda_handler()"
