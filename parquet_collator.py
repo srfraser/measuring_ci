@@ -41,6 +41,11 @@ def delete_parquet_files(url_list):
 
 async def collate_parquet_files(args, config):
     """Collect parquet data files into one."""
+    # Don't store the full path to integration/releases/...
+    if 'project' in args:
+        short_project = args['project'].split('/')[-1]
+        config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
+        config['staging_output'] = config['staging_output'].format(project=short_project)
     staged_files = await find_staged_data_files(config['staging_output'])
 
     # Without this, urllib doesn't know about s3 and removes s3://netloc/
@@ -64,11 +69,6 @@ async def collate_parquet_files(args, config):
     if not existing_costs.empty:
         contents.insert(0, existing_costs)
     new_costs = pd.concat(contents, sort=True)
-
-    # Don't store the full path to integration/releases/...
-    if 'project' in args:
-        short_project = args['project'].split('/')[-1]
-        config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
 
     log.info("Writing parquet file %s", config['total_cost_output'])
     new_costs.to_parquet(config['total_cost_output'], compression='gzip')

@@ -70,6 +70,9 @@ async def analyze_taskgraph(args, config):
     # Need to convert scalar values to lists
     costs_df = pd.DataFrame.from_dict({k: [v] for k, v in raw_data.items()})
 
+    # Split up things based on project, if mentioned.
+    if 'project' in raw_data:
+        config['staging_output'] = config['staging_output'].format(project=raw_data['project'])
     output = os.path.join(config['staging_output'], "{}.parquet".format(args['groupid']))
     log.info("Writing parquet file %s", output)
     costs_df.to_parquet(output, compression='gzip')
