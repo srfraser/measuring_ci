@@ -1,18 +1,17 @@
 import argparse
 import asyncio
 import copy
+import json
 import logging
 import os
 from datetime import datetime, timedelta
 
+import boto3
 import pandas as pd
 import yaml
 
-from measuring_ci.artifacts import get_artifact_costs
-from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
 from measuring_ci.nightly import fetch_nightlies
-from measuring_ci.utils import semaphore_wrapper
-from taskhuddler.aio.graph import TaskGraph
+from measuring_ci.utils import find_staged_data_files
 
 LOG_LEVEL = logging.INFO
 
@@ -31,82 +30,59 @@ def parse_args():
     return parser.parse_args()
 
 
-async def _semaphore_wrapper(action, args, semaphore):
-    """Wrap an async function with semaphores."""
-    async with semaphore:
-        return await action(*args)
-
-
-async def scan_nightlies(config):
-    """Scan recent history for complete task graphs."""
-    config = copy.deepcopy(config)
-    cost_dataframe_columns = [
-        'product', 'groupid',
-        'revision', 'graph_date',
-        'version', 'totalcost',
-        'idealcost', 'taskcount',
-        'compute_time', 'artifact_size',
-        'artifact_projected_cost',
-    ]
-
+async def find_examined_taskgraph_ids(config):
+    """Find the task graph IDs we have examined already."""
     try:
         existing_costs = pd.read_parquet(config['total_cost_output'])
-        log.info("Loaded existing nightly costs")
+        taskgraphs = existing_costs['groupid'].tolist()
     except Exception:
-        log.info("Couldn't load existing nightly costs, using empty data set")
-        existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
+        taskgraphs = list()
+
+    staged_files = await find_staged_data_files(config['staging_output'])
+    staged_taskgraphs = [os.path.basename(f).replace('.parquet', '') for f in staged_files]
+
+    return taskgraphs + staged_taskgraphs
+
+
+async def scan_nightlies(args, config):
+    """Scan recent history for complete task graphs."""
+    config = copy.deepcopy(config)
+
+    examined_taskgraph_ids = await find_examined_taskgraph_ids(config)
 
     log.info("Looking up taskgraph IDs")
     nightlies = await fetch_nightlies(datetime.now() - timedelta(days=1))
     log.info("Found %d taskgraph IDs", len(nightlies))
 
-    tasks = list()
-    semaphore = asyncio.Semaphore(10)
+    lambda_client = boto3.client('lambda')
 
     for graph_id in nightlies:
-        if str(graph_id) in existing_costs['groupid'].values:
+        if str(graph_id) in examined_taskgraph_ids:
             log.debug("Already examined taskgroup %s, skipping.", graph_id)
             continue
-        tasks.append(asyncio.ensure_future(semaphore_wrapper(semaphore, TaskGraph(graph_id))))
-
-    log.info('Gathering task %d graphs', len(tasks))
-
-    for graph in await asyncio.gather(*tasks):
-        nightlies[graph.groupid]['graph'] = graph
-    # Remove ones we're skipping as already processed.
-    nightlies = {n: nightlies[n] for n in nightlies if 'graph' in nightlies[n]}
-
-    costs = list()
-
-    log.info('Calculating costs')
-    worker_costs = fetch_all_worker_costs(
-        tc_csv_filename=config['costs_csv_file'],
-        scriptworker_csv_filename=config.get('costs_scriptworker_csv_file'),
-    )
-    for graph in nightlies:
-        full_cost, final_runs_cost = taskgraph_cost(nightlies[graph]['graph'], worker_costs)
-        artifact_size, artifact_cost = await get_artifact_costs(graph)
-
-        costs.append(
-            [
-                nightlies[graph]['product'],
-                graph,
-                nightlies[graph]['revision'],
-                nightlies[graph]['graph'].earliest_start_time.strftime("%Y-%m-%d"),  # date bucket
-                nightlies[graph]['version'],
-                full_cost,
-                final_runs_cost,
-                len([t for t in nightlies[graph]['graph'].tasks()]),  # task count
-                graph.total_compute_time().total_seconds(),
-                artifact_size,
-                artifact_cost,
-            ])
-
-    costs_df = pd.DataFrame(costs, columns=cost_dataframe_columns)
-
-    new_costs = existing_costs.merge(costs_df, how='outer')
-    log.info("Writing parquet file %s", config['total_cost_output'])
-    new_costs.to_parquet(config['total_cost_output'], compression='gzip')
+        args.update({
+            'groupid': graph_id,
+            'project': 'mozilla-central',
+            'data': {
+                'product': nightlies[graph_id]['product'],
+                'groupid': graph_id,
+                'revision': nightlies[graph_id]['revision'],
+                'graph_date': None,
+                'version': nightlies[graph_id]['version'],
+                'totalcost': None,
+                'idealcost': None,
+                'taskcount': None,
+                'compute_time': None,
+                'artifact_size': None,
+                'artifact_projected_cost': None,
+            },
+        })
+        log.info("Invoking lambda for %s", graph_id)
+        lambda_client.invoke(
+            FunctionName='taskgraph_analyzer',
+            InvocationType='Event',
+            Payload=json.dumps(args),
+        )
 
 
 async def main(args):
@@ -116,7 +92,7 @@ async def main(args):
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
     config['backfill_count'] = args.get('backfill_count', None)
 
-    await scan_nightlies(config)
+    await scan_nightlies(args, config)
 
 
 def lambda_handler(args, context):

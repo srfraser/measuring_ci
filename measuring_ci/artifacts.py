@@ -1,12 +1,13 @@
 import asyncio
 import logging
+import os
 from functools import partial
-
-import dateutil.parser
 
 import aiohttp
 import boto3
+import dateutil.parser
 from taskcluster.aio import Queue
+
 from taskhuddler.utils import tc_options
 
 from .utils import semaphore_wrapper
@@ -38,10 +39,16 @@ async def get_tc_run_artifacts(taskid, runid):
 
 async def get_s3_task_artifacts(taskid,
                                 bucket_name='taskcluster-public-artifacts',
-                                s3_client=boto3.client('s3')):
+                                s3_client=None):
 
+    if s3_client is None:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=os.environ.get('TASKCLUSTER_S3_ACCESS_KEY'),
+            aws_secret_access_key=os.environ.get('TASKCLUSTER_S3_SECRET_KEY'),
+        )
     loop = asyncio.get_event_loop()
-    log.info('Fetching S3 artifact info for %s', taskid)
+    log.debug('Fetching S3 artifact info for %s', taskid)
     artifacts = []
 
     cont_token = None
@@ -70,11 +77,16 @@ def merge_artifacts(tc_artifacts, s3_artifacts):
     s3_by_name = {a['Key']: a for a in s3_artifacts}
 
     retval = {}
-    for name, s3_obj in s3_by_name.items():
+
+    differences = set(s3_by_name.keys()).symmetric_difference(tc_by_name.keys())
+    if differences:
+        log.warning("Artifacts: %d mismatches when combining S3 and TC", len(differences))
+
+    for name in set(s3_by_name.keys()).intersection(tc_by_name.keys()):
         retval[name] = {}
-        retval[name]['size'] = s3_obj['Size']
+        retval[name]['size'] = s3_by_name[name]['Size']
         retval[name]['expires'] = dateutil.parser.parse(tc_by_name[name]['expires'])
-        retval[name]['created'] = s3_obj['LastModified']
+        retval[name]['created'] = s3_by_name[name]['LastModified']
 
     return retval
 
