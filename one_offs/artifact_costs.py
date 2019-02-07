@@ -4,12 +4,12 @@ import asyncio
 import logging
 from functools import partial
 
-import dateutil.parser
-
 import aiohttp
 import boto3
-from measuring_ci.utils import semaphore_wrapper
+import dateutil.parser
 from taskcluster.aio import Queue
+
+from measuring_ci.utils import semaphore_wrapper
 from taskhuddler.aio.graph import TaskGraph
 from taskhuddler.utils import tc_options
 
