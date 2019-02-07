@@ -45,7 +45,7 @@ async def collate_parquet_files(args, config):
     if 'project' in args:
         short_project = args['project'].split('/')[-1]
         config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
-        config['staging_output'] = config['staging_output'].format(project=short_project)
+        config['staging_output'] = config['staging_output'].format(project=args['project'])
     staged_files = await find_staged_data_files(config['staging_output'])
 
     # Without this, urllib doesn't know about s3 and removes s3://netloc/
