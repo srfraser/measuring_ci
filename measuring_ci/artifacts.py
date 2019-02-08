@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-from functools import partial
 
 import aiohttp
 import boto3
@@ -10,7 +9,7 @@ from taskcluster.aio import Queue
 
 from taskhuddler.utils import tc_options
 
-from .utils import semaphore_wrapper
+from .utils import list_s3_objects, semaphore_wrapper
 
 log = logging.getLogger(__name__)
 
@@ -47,29 +46,9 @@ async def get_s3_task_artifacts(taskid,
             aws_access_key_id=os.environ.get('TASKCLUSTER_S3_ACCESS_KEY'),
             aws_secret_access_key=os.environ.get('TASKCLUSTER_S3_SECRET_KEY'),
         )
-    loop = asyncio.get_event_loop()
-    log.debug('Fetching S3 artifact info for %s', taskid)
-    artifacts = []
-
-    cont_token = None
     prefix = taskid + '/'
-    while True:
-        if cont_token:
-            kwargs = dict(Bucket=bucket_name, Prefix=prefix,
-                          ContinuationToken=cont_token)
-        else:
-            kwargs = dict(Bucket=bucket_name, Prefix=prefix)
 
-        func = partial(s3_client.list_objects_v2, **kwargs)
-        resp = await loop.run_in_executor(None, func)
-        if resp['KeyCount'] == 0:
-            break
-        artifacts.extend(resp['Contents'])
-        if not resp['IsTruncated']:
-            break
-        cont_token = resp['NextContinuationToken']
-
-    return artifacts
+    return list_s3_objects(s3_client, bucket_name, prefix)
 
 
 def merge_artifacts(tc_artifacts, s3_artifacts):

@@ -18,17 +18,10 @@ async def semaphore_wrapper(semaphore, coro):
         return await coro
 
 
-async def find_staged_data_files(s3_url):
-
-    url_obj = urlparse(s3_url)
-    bucket_name = url_obj.netloc
-    prefix = url_obj.path.lstrip('/')
-    if not prefix.endswith('/'):
-        prefix = prefix + '/'
-    s3_client = boto3.client('s3')
+async def list_s3_objects(s3_client, bucket_name, prefix):
+    """Handle the list_objects_v2 calls."""
     loop = asyncio.get_event_loop()
     artifacts = []
-
     cont_token = None
     while True:
         if cont_token:
@@ -45,4 +38,16 @@ async def find_staged_data_files(s3_url):
         if not resp['IsTruncated']:
             break
         cont_token = resp['NextContinuationToken']
-    return [a['Key'] for a in artifacts]
+    return artifacts
+
+
+async def find_staged_data_files(s3_url):
+    """Find the single-entry data files in s3."""
+    url_obj = urlparse(s3_url)
+    bucket_name = url_obj.netloc
+    prefix = url_obj.path.lstrip('/')
+    if not prefix.endswith('/'):
+        prefix = prefix + '/'
+    s3_client = boto3.client('s3')
+
+    return [a['Key'] for a in list_s3_objects(s3_client, bucket_name, prefix)]
