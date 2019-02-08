@@ -10,6 +10,10 @@ from measuring_ci.utils import find_staged_data_files
 
 LOG_LEVEL = logging.INFO
 
+# Without this, urllib doesn't know about s3 and removes s3://netloc/
+urllib.parse.uses_netloc.append('s3')
+urllib.parse.uses_relative.append('s3')
+
 # AWS artisinal log handling, they've already set up a handler by the time we get here
 log = logging.getLogger()
 log.setLevel(LOG_LEVEL)
@@ -48,9 +52,6 @@ async def collate_parquet_files(args, config):
         config['staging_output'] = config['staging_output'].format(project=args['project'])
     staged_files = await find_staged_data_files(config['staging_output'])
 
-    # Without this, urllib doesn't know about s3 and removes s3://netloc/
-    urllib.parse.uses_netloc.append('s3')
-    urllib.parse.uses_relative.append('s3')
     url_parts = urllib.parse.urlparse(config['staging_output'])
     bucket_url = '{}://{}'.format(url_parts.scheme, url_parts.netloc)
 
