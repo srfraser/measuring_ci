@@ -50,4 +50,4 @@ async def find_staged_data_files(s3_url):
         prefix = prefix + '/'
     s3_client = boto3.client('s3')
 
-    return [a['Key'] for a in list_s3_objects(s3_client, bucket_name, prefix)]
+    return [a['Key'] for a in await list_s3_objects(s3_client, bucket_name, prefix)]

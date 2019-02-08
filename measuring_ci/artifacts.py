@@ -48,7 +48,7 @@ async def get_s3_task_artifacts(taskid,
         )
     prefix = taskid + '/'
 
-    return list_s3_objects(s3_client, bucket_name, prefix)
+    return await list_s3_objects(s3_client, bucket_name, prefix)
 
 
 def merge_artifacts(tc_artifacts, s3_artifacts):
