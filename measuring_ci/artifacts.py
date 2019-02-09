@@ -1,45 +1,60 @@
 import asyncio
 import logging
 import os
+from difflib import get_close_matches
 
-import aiohttp
 import boto3
 import dateutil.parser
-from taskcluster.aio import Queue
-
-from taskhuddler.utils import tc_options
 
 from .utils import list_s3_objects, semaphore_wrapper
 
 log = logging.getLogger(__name__)
 
 
-async def get_tc_run_artifacts(taskid, runid):
-    log.debug('Fetching TC artifact info for %s/%s', taskid, runid)
-    artifacts = []
-    query = {}
-    async with aiohttp.ClientSession() as session:
-        queue = Queue(options=tc_options(), session=session)
-        while True:
-            resp = await queue.listArtifacts(taskid, runid, query=query)
+def get_artifact_expiry(task_json):
+    """Extract artifact expiry times from task definition.
 
-            # Ammend the artifact information with the task and run ids
-            # to make it easy to find the corresponding S3 object
-            for a in resp['artifacts']:
-                a['_name'] = f'{taskid}/{runid}/{a["name"]}'
-                artifacts.append(a)
-            if 'continuationToken' in resp:
-                query.update({'continuationToken': resp['continuationToken']})
-            else:
-                break
+    Uses the task's own expiry time as a default if the
+    payload artifacts don't specify it.
 
-    return artifacts
+    Copes with both list and dictionary formats in common use.
+    """
+    artifacts = task_json['task']['payload'].get('artifacts')
+    task_expiry = task_json['task']['expires']
+    # This acts as a default value
+    expiries = {'': task_expiry}
+    if artifacts is None:
+        return expiries
+    if isinstance(artifacts, list):
+        expiries.update({entry['name']: entry.get('expires', task_expiry) for entry in artifacts})
+    elif isinstance(artifacts, dict):
+        expiries.update({k: v.get('expires', task_expiry) for k, v in artifacts.items()})
+    return expiries
+
+
+def insert_artifact_expiry(task, s3_by_name):
+    """Add expiry times to artifact metadata.
+
+    Finds the closest match for an expiry time, as often
+    the full path isn't mentioned. Closest directory if
+    available, or task's own expiry time if not, using
+    the default set in get_artifact_expiry.
+    """
+    expiries = get_artifact_expiry(task.json)
+    run_ids = [r['runId'] for r in task.json['status']['runs']]
+    expiries = {f"{task.taskid}/{run_id}/{k}": v for k, v in expiries.items()
+                for run_id in run_ids}
+    for name in s3_by_name:
+        possibles = [e for e in expiries.keys() if name.startswith(e)]
+        keys = get_close_matches(name, possibles, n=1, cutoff=0.3)
+        key = keys[0]
+        s3_by_name[name]['expires'] = dateutil.parser.parse(expiries[key])
+    return s3_by_name
 
 
 async def get_s3_task_artifacts(taskid,
                                 bucket_name='taskcluster-public-artifacts',
                                 s3_client=None):
-
     if s3_client is None:
         s3_client = boto3.client(
             's3',
@@ -47,27 +62,24 @@ async def get_s3_task_artifacts(taskid,
             aws_secret_access_key=os.environ.get('TASKCLUSTER_S3_SECRET_KEY'),
         )
     prefix = taskid + '/'
-
     return await list_s3_objects(s3_client, bucket_name, prefix)
 
 
-def merge_artifacts(tc_artifacts, s3_artifacts):
-    tc_by_name = {a['_name']: a for a in tc_artifacts}
-    s3_by_name = {a['Key']: a for a in s3_artifacts}
+async def get_artifact_metadata(task):
+    """Return artifact metadata for a task.
 
-    retval = {}
-
-    differences = set(s3_by_name.keys()).symmetric_difference(tc_by_name.keys())
-    if differences:
-        log.warning("Artifacts: %d mismatches when combining S3 and TC", len(differences))
-
-    for name in set(s3_by_name.keys()).intersection(tc_by_name.keys()):
-        retval[name] = {}
-        retval[name]['size'] = s3_by_name[name]['Size']
-        retval[name]['expires'] = dateutil.parser.parse(tc_by_name[name]['expires'])
-        retval[name]['created'] = s3_by_name[name]['LastModified']
-
-    return retval
+    Fetches most data from s3, and works out the rest from the
+    task payload.
+    """
+    s3_artifacts = await get_s3_task_artifacts(task.taskid)
+    s3_by_name = dict()
+    for artifact in s3_artifacts:
+        s3_by_name[artifact['Key']] = {
+            'size': artifact['Size'],
+            'created': artifact['LastModified'],
+        }
+    s3_by_name = insert_artifact_expiry(task, s3_by_name)
+    return s3_by_name
 
 
 async def get_artifact_costs(group):
@@ -75,24 +87,14 @@ async def get_artifact_costs(group):
     log.info("Fetching Taskcluster artifact info for %s", str(group))
     sem = asyncio.Semaphore(10)
 
-    tc_tasks = []
     s3_tasks = []
     for t in group.tasks():
-        for run in t.json['status']['runs']:
-            runid = run['runId']
-            tc_tasks.append(semaphore_wrapper(sem, get_tc_run_artifacts(t.taskid, runid)))
-        s3_tasks.append(semaphore_wrapper(sem, get_s3_task_artifacts(t.taskid)))
+        s3_tasks.append(semaphore_wrapper(sem, get_artifact_metadata(t)))
 
     log.info('Gathering artifacts')
-    tc_task_artifacts, s3_task_artifacts = await asyncio.gather(
-        asyncio.gather(*tc_tasks),
-        asyncio.gather(*s3_tasks),
-    )
+    s3_task_artifacts = await asyncio.gather(*s3_tasks)
 
-    # Flatten the lists
-    s3_artifacts = [artifacts for tasks in s3_task_artifacts for artifacts in tasks]
-    tc_artifacts = [artifacts for tasks in tc_task_artifacts for artifacts in tasks]
-    artifacts = merge_artifacts(tc_artifacts, s3_artifacts)
+    artifacts = {k: v for e in s3_task_artifacts for k, v in e.items()}
 
     std_cost = 0.02 / (30 * 86400)  # cost per second
     std_ia_cost = 0.0125 / (30 * 86400)  # cost per second
