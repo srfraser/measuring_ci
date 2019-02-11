@@ -68,6 +68,7 @@ async def collate_parquet_files(args, config):
     if not existing_costs.empty:
         contents.insert(0, existing_costs)
     new_costs = pd.concat(contents, sort=True)
+    log.info("Dropping duplicates")
     new_costs.drop_duplicates(subset=['groupid'], keep='last', inplace=True)
     log.info("Writing parquet file %s", config['total_cost_output'])
     new_costs.to_parquet(config['total_cost_output'], compression='gzip')
