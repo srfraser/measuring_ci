@@ -51,7 +51,6 @@ async def collate_parquet_files(args, config):
         config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
         config['staging_output'] = config['staging_output'].format(project=args['project'])
     staged_files = await find_staged_data_files(config['staging_output'])
-
     url_parts = urllib.parse.urlparse(config['staging_output'])
     bucket_url = '{}://{}'.format(url_parts.scheme, url_parts.netloc)
 
@@ -62,7 +61,6 @@ async def collate_parquet_files(args, config):
     contents = [
         pd.read_parquet(p) for p in parquet_files
     ]
-
     existing_costs = load_parquet(
         filename=config['total_cost_output'],
         columns=[],
@@ -70,12 +68,16 @@ async def collate_parquet_files(args, config):
     if not existing_costs.empty:
         contents.insert(0, existing_costs)
     new_costs = pd.concat(contents, sort=True)
-
+    new_costs.drop_duplicates(subset=['groupid'], keep='last', inplace=True)
     log.info("Writing parquet file %s", config['total_cost_output'])
     new_costs.to_parquet(config['total_cost_output'], compression='gzip')
 
     log.info("Cleaning up")
-    delete_parquet_files(parquet_files)
+    # Chunk deletes due to parameter size in s3 call
+    chunk_size = 50
+    for chunk_index in range(len(parquet_files))[::chunk_size]:
+        chunk = parquet_files[chunk_index:chunk_index + chunk_size]
+        delete_parquet_files(chunk)
 
 
 async def main(args):
@@ -97,7 +99,8 @@ def lambda_handler(args, context):
 
 if __name__ == "__main__":
     payload = {
-        "config": "nightlies_debug.yml",
+        "config": "scanner.yml",
+        "project": "try",
     }
     log.setLevel(logging.DEBUG)
 
