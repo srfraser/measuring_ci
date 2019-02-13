@@ -99,9 +99,10 @@ def lambda_handler(args, context):
 
 
 if __name__ == "__main__":
+    import sys
     payload = {
         "config": "scanner.yml",
-        "project": "try",
+        "project": sys.argv[1],
     }
     log.setLevel(logging.DEBUG)
 
