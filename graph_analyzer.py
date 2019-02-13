@@ -99,7 +99,7 @@ def lambda_handler(args, context):
 
 if __name__ == "__main__":
     payload = {
-        "config": "nightlies_debug.yml",
+        "config": "nightlies.yml",
         "groupid": "JypwL9OsRkq-hVsOERwBFA",  # Might not have the same name in the data
         "data": {
             "product": "firefox",
