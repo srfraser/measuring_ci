@@ -26,7 +26,8 @@ def get_artifact_expiry(task_json):
     if artifacts is None:
         return expiries
     if isinstance(artifacts, list):
-        expiries.update({entry['name']: entry.get('expires', task_expiry) for entry in artifacts})
+        expiries.update({entry['name']: entry.get('expires', task_expiry)
+                         for entry in artifacts if 'name' in entry})
     elif isinstance(artifacts, dict):
         expiries.update({k: v.get('expires', task_expiry) for k, v in artifacts.items()})
     return expiries
@@ -71,7 +72,10 @@ async def get_artifact_metadata(task):
     Fetches most data from s3, and works out the rest from the
     task payload.
     """
-    s3_artifacts = await get_s3_task_artifacts(task.taskid)
+    try:
+        s3_artifacts = await get_s3_task_artifacts(task.taskid)
+    except:
+        return dict()
     s3_by_name = dict()
     for artifact in s3_artifacts:
         s3_by_name[artifact['Key']] = {
