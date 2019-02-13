@@ -72,7 +72,7 @@ async def find_examined_taskgraph_ids(config):
     return taskgraphs + staged_taskgraphs
 
 
-def fetch_taskgraphs_for_pushes(pushes, project, known_pushes):
+def fetch_taskgraphs_for_pushes(pushes, project, known_graphs):
     """Return TaskGraph objects for all provided pushes."""
     taskgraphs = list()
 
@@ -80,14 +80,15 @@ def fetch_taskgraphs_for_pushes(pushes, project, known_pushes):
     count_not_finished = 0
     for push in pushes[project]:
         log.debug("Examining push %s", push)
-        if str(push) in known_pushes:
-            log.debug("Already examined push %s, skipping.", push)
-            continue
+
         if probably_finished(pushes[project][push]['date']):
             graph_id = pushes[project][push]['taskgraph']
             if not graph_id or graph_id == '':
                 log.debug("Couldn't find graph id for %s push %s", project, push)
                 count_no_graph_id += 1
+                continue
+            if graph_id in known_graphs:
+                log.debug("Already examined push %s (%s), skipping.", push, graph_id)
                 continue
             log.debug("Push %s, Graph ID: %s", push, graph_id)
             taskgraphs.append(graph_id)
@@ -104,12 +105,11 @@ async def scan_project(project, args, config):
     """Scan a project's recent history for complete task graphs."""
     config = copy.deepcopy(config)
 
-    examined_taskgraph_ids = await find_examined_taskgraph_ids(config)
-
     short_project = project.split('/')[-1]
     config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
     config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
         project=project.replace('/', '_'))
+    config['staging_output'] = config['staging_output'].format(project=project)
 
     log.info("Looking up pushlog for %s", project)
     pushes = await scan_pushlog(config['pushlog_url'],
@@ -119,6 +119,7 @@ async def scan_project(project, args, config):
                                 backfill_count=config['backfill_count'],
                                 cache_file=config['pushlog_cache_file'])
 
+    examined_taskgraph_ids = await find_examined_taskgraph_ids(config)
     taskgraphs = fetch_taskgraphs_for_pushes(pushes, project, examined_taskgraph_ids)
 
     lambda_client = boto3.client('lambda')
