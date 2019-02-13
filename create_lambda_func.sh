@@ -37,8 +37,12 @@ SITE_PACKAGES=$(find ${VENV_NAME} -type d -name site-packages)
 # plotly/ipython are huge, and there's a 256Mb unzipped size limit
 # for the env we upload.
 
-# rsync -av --exclude "*boto*" --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
-rsync -av --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
+rsync -av --exclude "*boto*" --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
+for library in $(find "${STAGING_DIR}" -name '*.so')
+do
+    strip "${library}"
+done
+# rsync -av --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
 
 # mv  "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
 # rm -fr "${STAGING_DIR}"/plotly*
@@ -70,7 +74,7 @@ echo "aws s3 cp measuring_ci.zip s3://mozilla-releng-metrics/$(basename "${OUTPU
 echo ""
 
 echo "2. Visit https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/"
-echo "3. Under 'Function code' choose a 'Code entry type' of 'Upload a file from Amazon S3'"
+echo "3. For each measuring_ci function, under 'Function code' choose a 'Code entry type' of 'Upload a file from Amazon S3'"
 echo "Paste the above s3 url into the box"
 echo "4. Ensure the Handler is set correctly if not using lambda_function:lambda_handler()"
 echo "5. Under 'Basic Settings' ensure the Memory usage is at 512Mb and Timeout is at least 2 minutes."
