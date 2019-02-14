@@ -129,7 +129,7 @@ async def scan_project(project, args, config):
         args.update({
             'groupid': graph_id,
             'data': {
-                'project': project,
+                'project': short_project,
                 'product': args['product'],
                 'groupid': graph_id,
                 'pushid': push,
