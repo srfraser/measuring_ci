@@ -63,6 +63,7 @@ async def scan_nightlies(args, config):
         args.update({
             'groupid': graph_id,
             'project': 'mozilla-central',
+            'config': 'nightlies.yml',
             'data': {
                 'product': nightlies[graph_id]['product'],
                 'groupid': graph_id,
