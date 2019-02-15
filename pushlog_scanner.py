@@ -1,17 +1,17 @@
 import argparse
 import asyncio
 import copy
+import json
 import logging
 import os
-from collections import defaultdict
 from datetime import datetime, timedelta
 
+import boto3
 import pandas as pd
 import yaml
 
-from measuring_ci.costs import fetch_all_worker_costs, taskgraph_cost
 from measuring_ci.pushlog import scan_pushlog
-from taskhuddler.aio.graph import TaskGraph
+from measuring_ci.utils import find_staged_data_files
 
 LOG_LEVEL = logging.INFO
 
@@ -24,6 +24,7 @@ logging.getLogger("aiohttp").setLevel(logging.INFO)
 
 
 def parse_args():
+    """Parse arguments if run on command line."""
     parser = argparse.ArgumentParser(description="CI Costs")
     parser.add_argument('--project', type=str, default='mozilla-central')
     parser.add_argument('--product', type=str, default='firefox')
@@ -42,166 +43,129 @@ def probably_finished(timestamp):
 
 
 def find_push_by_group(group_id, project, pushes):
+    """Find the correct push for a task graph."""
     return next(push for push in pushes[project] if pushes[project][push]['taskgraph'] == group_id)
 
 
-async def _semaphore_wrapper(action, args, semaphore):
-    async with semaphore:
-        return await action(*args)
+def load_parquet(filename, columns):
+    """Load existing parquet file or an empty one."""
+    try:
+        df = pd.read_parquet(filename)
+        log.info("Loaded %s", filename)
+    except Exception as exc:
+        log.info("Couldn't load %s, using empty data set (%s)", filename, exc)
+        df = pd.DataFrame(columns=columns)
+    return df
 
 
-async def scan_project(project, product, config):
-    """Scan a project's recent history for complete task graphs."""
-    config = copy.deepcopy(config)
-    cost_dataframe_columns = [
-        'project', 'product', 'groupid',
-        'pushid', 'graph_date', 'origin',
-        'totalcost', 'idealcost', 'taskcount',
-        'compute_time',
-    ]
-    daily_dataframe_columns = [
-        'project', 'product', 'ci_date',
-        'origin', 'totalcost', 'taskcount',
-        'compute_time',
-    ]
-
-    short_project = project.split('/')[-1]
-    config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
-    config['daily_totals_output'] = config['daily_totals_output'].format(project=short_project)
-    config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
-        project=project.replace('/', '_'))
-
-    log.info("Looking up pushlog for {}".format(project))
-    pushes = await scan_pushlog(config['pushlog_url'],
-                                project=project,
-                                product=product,
-                                # starting_push=34612,
-                                backfill_count=config['backfill_count'],
-                                cache_file=config['pushlog_cache_file'])
-
+async def find_examined_taskgraph_ids(config):
+    """Find the task graph IDs we have examined already."""
     try:
         existing_costs = pd.read_parquet(config['total_cost_output'])
-        log.info("Loaded existing per-push costs")
-    except Exception as e:
-        log.info("Couldn't load existing per-push costs, using empty data set", e)
-        existing_costs = pd.DataFrame(columns=cost_dataframe_columns)
+        taskgraphs = existing_costs['groupid'].tolist()
+    except Exception:
+        taskgraphs = list()
 
-    semaphore = asyncio.Semaphore(10)
-    tasks = list()
+    staged_files = await find_staged_data_files(config['staging_output'])
+    staged_taskgraphs = [os.path.basename(f).replace('.parquet', '') for f in staged_files]
+
+    return taskgraphs + staged_taskgraphs
+
+
+def fetch_taskgraphs_for_pushes(pushes, project, known_graphs):
+    """Return TaskGraph objects for all provided pushes."""
+    taskgraphs = list()
 
     count_no_graph_id = 0
     count_not_finished = 0
     for push in pushes[project]:
         log.debug("Examining push %s", push)
-        if str(push) in existing_costs['pushid'].values:
-            log.debug("Already examined push %s, skipping.", push)
-            continue
+
         if probably_finished(pushes[project][push]['date']):
             graph_id = pushes[project][push]['taskgraph']
             if not graph_id or graph_id == '':
-                log.debug("Couldn't find graph id for {} push {}".format(project, push))
+                log.debug("Couldn't find graph id for %s push %s", project, push)
                 count_no_graph_id += 1
                 continue
+            if graph_id in known_graphs:
+                log.debug("Already examined push %s (%s), skipping.", push, graph_id)
+                continue
             log.debug("Push %s, Graph ID: %s", push, graph_id)
-            tasks.append(asyncio.ensure_future(
-                _semaphore_wrapper(
-                    TaskGraph,
-                    args=(graph_id,),
-                    semaphore=semaphore,
-                )))
+            taskgraphs.append(graph_id)
         else:
             log.debug("Push %s probably not finished, skipping", push)
             count_not_finished += 1
-    log.info('{} pushes without a graph_id; skipping {} probably not finished yet'.format(
-        count_no_graph_id, count_not_finished))
+    log.info('%d pushes without a graph_id; skipping %d probably not finished yet',
+             count_no_graph_id, count_not_finished)
 
-    log.info('Gathering task {} graphs'.format(len(tasks)))
-    taskgraphs = await asyncio.gather(*tasks)
+    return taskgraphs
 
-    costs = list()
-    daily_costs = defaultdict(int)
-    daily_task_count = defaultdict(int)
-    daily_time_used = defaultdict(timedelta)
 
-    log.info('Calculating costs')
-    worker_costs = fetch_all_worker_costs(
-        tc_csv_filename=config['costs_csv_file'],
-        scriptworker_csv_filename=config.get('costs_scriptworker_csv_file'),
-    )
-    for graph in taskgraphs:
-        push = find_push_by_group(graph.groupid, project, pushes)
-        full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)
-        task_count = len([t for t in graph.tasks()])
-        date_bucket = graph.earliest_start_time.strftime("%Y-%m-%d")
-        daily_costs[date_bucket] += full_cost
-        daily_task_count[date_bucket] += task_count
-        daily_time_used[date_bucket] += graph.total_compute_time()
-        costs.append(
-            [
-                short_project,
-                product,
-                graph.groupid,
-                push,
-                pushes[project][push]['date'],
-                'push',
-                full_cost,
-                final_runs_cost,
-                task_count,
-                graph.total_compute_time().total_seconds(),
-            ])
+async def scan_project(project, args, config):
+    """Scan a project's recent history for complete task graphs."""
+    config = copy.deepcopy(config)
 
-    costs_df = pd.DataFrame(costs, columns=cost_dataframe_columns)
+    short_project = project.split('/')[-1]
+    config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
+    config['pushlog_cache_file'] = config['pushlog_cache_file'].format(
+        project=project.replace('/', '_'))
+    config['staging_output'] = config['staging_output'].format(project=project)
 
-    new_costs = existing_costs.merge(costs_df, how='outer')
-    log.info("Writing parquet file %s", config['total_cost_output'])
-    new_costs.to_parquet(config['total_cost_output'], compression='gzip')
+    log.info("Looking up pushlog for %s", project)
+    pushes = await scan_pushlog(config['pushlog_url'],
+                                project=project,
+                                product=args['product'],
+                                starting_push=config['starting_push'],
+                                backfill_count=config['backfill_count'],
+                                cache_file=config['pushlog_cache_file'])
 
-    try:
-        daily_costs_df = pd.read_parquet(config['daily_totals_output'])
-        log.info("Loaded existing daily totals")
-    except Exception as e:
-        log.info("Couldn't load existing daily totals, using empty data set", e)
-        daily_costs_df = pd.DataFrame(columns=daily_dataframe_columns)
+    examined_taskgraph_ids = await find_examined_taskgraph_ids(config)
+    taskgraphs = fetch_taskgraphs_for_pushes(pushes, project, examined_taskgraph_ids)
 
-    dailies = list()
-    for key in daily_costs:
-        dailies.append([
-            short_project,
-            product,
-            key,
-            'push',
-            daily_costs[key],
-            daily_task_count.get(key, 0),
-            daily_time_used.get(key, timedelta(0)).total_seconds(),
-        ])
-    new_daily_costs = pd.DataFrame(dailies, columns=daily_dataframe_columns)
+    lambda_client = boto3.client('lambda')
 
-    new_daily_costs.set_index(['project', 'product', 'ci_date', 'origin'], inplace=True)
-    daily_costs_df.set_index(['project', 'product', 'ci_date', 'origin'], inplace=True)
-
-    # Add new to old, using 0 as a filler if there's no matching index, then remove the
-    # index so the columns operate as expected.
-    daily_costs_df = daily_costs_df.add(new_daily_costs, fill_value=0).reset_index()
-
-    # sometimes we end up with float taskcounts
-    daily_costs_df.taskcount = daily_costs_df.taskcount.astype(int)
-
-    log.info("Writing parquet file %s", config['daily_totals_output'])
-    daily_costs_df.to_parquet(config['daily_totals_output'], compression='gzip')
+    for graph_id in taskgraphs:
+        push = find_push_by_group(graph_id, project, pushes)
+        args.update({
+            'groupid': graph_id,
+            'data': {
+                'project': short_project,
+                'product': args['product'],
+                'groupid': graph_id,
+                'pushid': push,
+                'graph_date': pushes[project][push]['date'],
+                'origin': 'push',
+                'totalcost': None,
+                'idealcost': None,
+                'taskcount': None,
+                'compute_time': None,
+                'artifact_size': None,
+                'artifact_projected_cost': None,
+            },
+        })
+        log.info("Invoking lambda for %s", graph_id)
+        lambda_client.invoke(
+            FunctionName='taskgraph_analyzer',
+            InvocationType='Event',
+            Payload=json.dumps(args),
+        )
 
 
 async def main(args):
-    with open(args['config'], 'r') as y:
-        config = yaml.load(y)
+    """What to do."""
+    with open(args['config'], 'r') as yamlfile:
+        config = yaml.load(yamlfile)
     os.environ['TC_CACHE_DIR'] = config['TC_CACHE_DIR']
     config['backfill_count'] = args.get('backfill_count', None)
+    config['starting_push'] = args.get('starting_push', None)
 
     # cope with original style, listing one project, or listing multiple
     for project in args.get('projects', [args.get('project')]):
-        await scan_project(project, args['product'], config)
+        await scan_project(project, args, config)
 
 
 def lambda_handler(args, context):
+    """AWS entrypoint."""
     assert context  # not current used
     if 'config' not in args:
         args['config'] = 'scanner.yml'

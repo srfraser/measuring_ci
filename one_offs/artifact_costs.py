@@ -9,15 +9,11 @@ import boto3
 import dateutil.parser
 from taskcluster.aio import Queue
 
+from measuring_ci.utils import semaphore_wrapper
 from taskhuddler.aio.graph import TaskGraph
 from taskhuddler.utils import tc_options
 
 log = logging.getLogger(__name__)
-
-
-async def _semaphore_wrapper(semaphore, coro):
-    async with semaphore:
-        return await coro
 
 
 async def get_tc_run_artifacts(taskid, runid):
@@ -97,8 +93,8 @@ async def get_artifact_costs(groupid):
     for t in group.tasks():
         for run in t.json['status']['runs']:
             runid = run['runId']
-            tc_tasks.append(_semaphore_wrapper(sem, get_tc_run_artifacts(t.taskid, runid)))
-        s3_tasks.append(_semaphore_wrapper(sem, get_s3_task_artifacts(t.taskid)))
+            tc_tasks.append(semaphore_wrapper(sem, get_tc_run_artifacts(t.taskid, runid)))
+        s3_tasks.append(semaphore_wrapper(sem, get_s3_task_artifacts(t.taskid)))
 
     log.info('Gathering artifacts')
     tc_task_artifacts, s3_task_artifacts = await asyncio.gather(

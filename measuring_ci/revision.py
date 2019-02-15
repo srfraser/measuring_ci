@@ -1,6 +1,6 @@
 import logging
 
-import taskcluster
+import taskcluster.aio
 
 from .utils import tc_options
 
