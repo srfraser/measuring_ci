@@ -45,11 +45,19 @@ def insert_artifact_expiry(task, s3_by_name):
     run_ids = [r['runId'] for r in task.json['status']['runs']]
     expiries = {f"{task.taskid}/{run_id}/{k}": v for k, v in expiries.items()
                 for run_id in run_ids}
+    previous = None
     for name in s3_by_name:
         possibles = [e for e in expiries.keys() if name.startswith(e)]
-        keys = get_close_matches(name, possibles, n=1, cutoff=0.3)
-        key = keys[0]
-        s3_by_name[name]['expires'] = dateutil.parser.parse(expiries[key])
+        try:
+            keys = get_close_matches(name, possibles, n=1, cutoff=0.3)
+            if keys is not None and len(keys) > 0:
+                key = keys[0]
+                s3_by_name[name]['expires'] = dateutil.parser.parse(expiries[key])
+                previous = dateutil.parser.parse(expiries[key])
+            elif previous:
+                s3_by_name[name]['expires'] = previous
+        except IndexError:
+            continue
     return s3_by_name
 
 
@@ -108,6 +116,8 @@ async def get_artifact_costs(group):
     task_size = 0
 
     for name, info in artifacts.items():
+        if 'expires' not in info:
+            continue
         task_size += info['size']
         gbs = info['size'] / (1024 ** 3)
         ttl_seconds = (info['expires'] - info['created']).total_seconds()
