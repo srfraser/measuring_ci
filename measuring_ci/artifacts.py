@@ -74,7 +74,8 @@ async def get_artifact_metadata(task):
     """
     try:
         s3_artifacts = await get_s3_task_artifacts(task.taskid)
-    except:  # noqa raises many possibilities
+    except Exception as exc:  # noqa raises many possibilities
+        log.error(exc)
         return dict()
     s3_by_name = dict()
     for artifact in s3_artifacts:

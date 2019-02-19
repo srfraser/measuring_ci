@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 import urllib.parse
 
 import boto3
@@ -50,7 +51,14 @@ async def collate_parquet_files(args, config):
         short_project = args['project'].split('/')[-1]
         config['total_cost_output'] = config['total_cost_output'].format(project=short_project)
         config['staging_output'] = config['staging_output'].format(project=args['project'])
+    log.info("Examining %s", config['staging_output'])
     staged_files = await find_staged_data_files(config['staging_output'])
+    log.info("Found %d staged files", len(staged_files))
+
+    if len(staged_files) == 0:
+        log.info("Nothing to do")
+        return
+
     url_parts = urllib.parse.urlparse(config['staging_output'])
     bucket_url = '{}://{}'.format(url_parts.scheme, url_parts.netloc)
 
@@ -70,7 +78,9 @@ async def collate_parquet_files(args, config):
     new_costs = pd.concat(contents, sort=True)
     log.info("Dropping duplicates")
     new_costs.drop_duplicates(subset=['groupid'], keep='last', inplace=True)
+
     log.info("Writing parquet file %s", config['total_cost_output'])
+    new_costs.reset_index(drop=True, inplace=True)
     new_costs.to_parquet(config['total_cost_output'], compression='gzip')
 
     log.info("Cleaning up")
@@ -99,11 +109,13 @@ def lambda_handler(args, context):
 
 
 if __name__ == "__main__":
-    import sys
     payload = {
-        "config": "scanner.yml",
-        "project": sys.argv[1],
+        "config": "nightlies.yml",
     }
-    log.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    log.addHandler(handler)
 
     lambda_handler(payload, 'foo')
