@@ -56,7 +56,7 @@ def insert_artifact_expiry(task, s3_by_name):
                 previous = dateutil.parser.parse(expiries[key])
             elif previous:
                 s3_by_name[name]['expires'] = previous
-        except:
+        except IndexError:
             continue
     return s3_by_name
 
