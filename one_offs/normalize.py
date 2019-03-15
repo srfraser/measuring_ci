@@ -1,9 +1,10 @@
 
 """
+Normalise timestamps.
+
 Take a set of log files, and change all the timestamps to be offsets from the
 task start time. This lets us more easily compare the time individual steps
 take.
-
 """
 
 import datetime

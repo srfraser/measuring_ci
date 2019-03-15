@@ -1,6 +1,7 @@
 """
 Download all the logfiles for tests from the given task graph.
 
+Commented out section to store the files.
 """
 
 import asyncio
