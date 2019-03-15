@@ -6,10 +6,10 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-import pandas as pd
-
 import boto3
+import pandas as pd
 import yaml
+
 from measuring_ci.nightly import fetch_nightlies
 from measuring_ci.utils import find_staged_data_files
 

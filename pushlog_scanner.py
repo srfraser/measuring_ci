@@ -6,10 +6,10 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-import pandas as pd
-
 import boto3
+import pandas as pd
 import yaml
+
 from measuring_ci.pushlog import scan_pushlog
 from measuring_ci.utils import find_staged_data_files
 

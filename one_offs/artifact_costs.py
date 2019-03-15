@@ -7,8 +7,9 @@ from functools import partial
 import aiohttp
 import boto3
 import dateutil.parser
-from measuring_ci.utils import semaphore_wrapper
 from taskcluster.aio import Queue
+
+from measuring_ci.utils import semaphore_wrapper
 from taskhuddler.aio.graph import TaskGraph
 from taskhuddler.utils import tc_options
 

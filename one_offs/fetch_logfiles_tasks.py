@@ -10,12 +10,12 @@ import os
 import re
 from datetime import datetime
 
-import pandas as pd
-
 import numpy as np
+import pandas as pd
 from dateutil.parser import parse
 from taskcluster.aio.queue import Queue
 from taskcluster.exceptions import TaskclusterRestFailure
+
 from taskhuddler.aio import TaskGraph
 
 OUTPUT_FILE = 'autoland_test_logfiles.csv'
@@ -39,7 +39,7 @@ columns = [
     'suite_start',
     'suite_end',
     'task_end_label',
-    'end_timestamp'
+    'end_timestamp',
 ]
 
 TC_LINE = re.compile(r'^\[\w+ (\d+-\d+-\d+[T ]\d+:\d+:\d+)')

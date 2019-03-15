@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import taskcluster.aio as taskcluster
+
 from measuring_ci.costs import fetch_worker_costs
 from taskhuddler.aio.graph import TaskGraph
 
