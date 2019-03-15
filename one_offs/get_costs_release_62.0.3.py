@@ -7,8 +7,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 import pandas as pd
-import yaml
 
+import yaml
 # from .measuring_ci.costs import fetch_all_worker_costs
 # from .measuring_ci.pushlog import scan_pushlog
 from taskhuddler.aio.graph import TaskGraph
