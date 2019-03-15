@@ -3,10 +3,10 @@ import logging
 import sys
 import urllib.parse
 
-import boto3
 import pandas as pd
-import yaml
 
+import boto3
+import yaml
 from measuring_ci.utils import find_staged_data_files
 
 LOG_LEVEL = logging.INFO
