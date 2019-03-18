@@ -3,31 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-date_columns = ['start_timestamp', 'task_start_label',
+DATE_COLUMNS = ['start_timestamp', 'task_start_label',
                 'suite_start', 'suite_end', 'task_end_label', 'end_timestamp']
-
-df = pd.read_csv('autoland_test_logfiles.csv',
-                 infer_datetime_format=True, parse_dates=date_columns)
-
-
-# Create new columns
-
-df['start_label_delay'] = df['task_start_label'] - df['start_timestamp']
-df['suite_start_delay'] = df['suite_start'] - df['task_start_label']
-
-# Graphs have difficulty with timedeltas
-df['start_label_delay_s'] = df['start_label_delay'] / pd.Timedelta(seconds=1)
-df['suite_start_delay_s'] = df['suite_start_delay'] / pd.Timedelta(seconds=1)
-
-# Remove chunking to aggregate tasks a bit.
-df['task_name_nochunks'] = df['task_name'].apply(lambda x: x.rstrip('1234567890-'))
-df['total_duration'] = df['end_timestamp'] - df['task_start_label']
-df['total_duration_s'] = df['total_duration'] / pd.Timedelta(seconds=1)
-df['suite_delay_ratio'] = df['suite_start_delay_s'] / df['total_duration_s']
-df['suite_delay_percentage'] = df['suite_delay_ratio'] * 100
 
 
 def simple_display(df, column):
+    """Straightforward box plot."""
     show_start_delay = pd.DataFrame({col: vals[column]
                                      for col, vals in df.groupby('task_name_nochunks')})
     meds = show_start_delay.median().sort_values()
@@ -41,11 +22,8 @@ def simple_display(df, column):
     plt.show()
 
 
-simple_display(df, 'start_label_delay_s')
-simple_display(df, 'suite_start_delay_s')
-
-
 def display_with_task_count(df, column):
+    """Add a second y axis showing task count."""
     fig, ax = plt.subplots()
     ax.set_ylabel('SUITE-START delay:Total Duration ratio')
     ax3 = ax.twinx()
@@ -70,5 +48,33 @@ def display_with_task_count(df, column):
     plt.show()
 
 
-display_with_task_count(df, 'start_label_delay_s')
-display_with_task_count(df, 'suite_start_delay_s')
+def main():
+
+    df = pd.read_csv('autoland_test_logfiles.csv',
+                     infer_datetime_format=True, parse_dates=DATE_COLUMNS)
+
+    # Create new columns
+
+    df['start_label_delay'] = df['task_start_label'] - df['start_timestamp']
+    df['suite_start_delay'] = df['suite_start'] - df['task_start_label']
+
+    # Graphs have difficulty with timedeltas
+    df['start_label_delay_s'] = df['start_label_delay'] / pd.Timedelta(seconds=1)
+    df['suite_start_delay_s'] = df['suite_start_delay'] / pd.Timedelta(seconds=1)
+
+    # Remove chunking to aggregate tasks a bit.
+    df['task_name_nochunks'] = df['task_name'].apply(lambda x: x.rstrip('1234567890-'))
+    df['total_duration'] = df['end_timestamp'] - df['task_start_label']
+    df['total_duration_s'] = df['total_duration'] / pd.Timedelta(seconds=1)
+    df['suite_delay_ratio'] = df['suite_start_delay_s'] / df['total_duration_s']
+    df['suite_delay_percentage'] = df['suite_delay_ratio'] * 100
+
+    # simple_display(df, 'start_label_delay_s')
+    # simple_display(df, 'suite_start_delay_s')
+
+    # display_with_task_count(df, 'start_label_delay_s')
+    display_with_task_count(df, 'suite_start_delay_s')
+
+
+if __name__ == "__main__":
+    main()
