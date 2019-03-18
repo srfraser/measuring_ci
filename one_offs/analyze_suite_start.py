@@ -1,7 +1,7 @@
 
 import pandas as pd
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 
 DATE_COLUMNS = ['start_timestamp', 'task_start_label',
                 'suite_start', 'suite_end', 'task_end_label', 'end_timestamp']
@@ -49,12 +49,11 @@ def display_with_task_count(df, column):
 
 
 def main():
-
+    """Main."""
     df = pd.read_csv('autoland_test_logfiles.csv',
                      infer_datetime_format=True, parse_dates=DATE_COLUMNS)
 
     # Create new columns
-
     df['start_label_delay'] = df['task_start_label'] - df['start_timestamp']
     df['suite_start_delay'] = df['suite_start'] - df['task_start_label']
 
