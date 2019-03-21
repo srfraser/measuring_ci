@@ -20,10 +20,10 @@ def parse_args():
     """Extract arguments."""
     parser = argparse.ArgumentParser(description="CI Costs")
     parser.add_argument('--config', type=str, default=argparse.SUPPRESS)
-    parser.add_argument('--month', type=int, default=None,
-                        help="The month of costs to gather, as an integer where 0=Jan (default=<Last Full Month>)")
-    parser.add_argument('--year', type=int, default=None,
-                        help="The month of costs to gather, as an integer where 0=Jan (default=<most recent year of specified month>)")
+    parser.add_argument('--month', type=int, default=0,
+                        help="The month of costs to gather, as an integer where 1=Jan (default=<Last Full Month>)")
+    parser.add_argument('--year', type=int, default=0,
+                        help="The year of costs to gather (default=<most recent year of specified month>)")
     return parser.parse_args()
 
 

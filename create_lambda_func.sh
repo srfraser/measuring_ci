@@ -21,6 +21,7 @@ cp -pr "releases_scanner.py" "${STAGING_DIR}/"
 cp -pr "nightly_scanner.py" "${STAGING_DIR}/"
 cp -pr "graph_analyzer.py" "${STAGING_DIR}/"
 cp -pr "parquet_collator.py" "${STAGING_DIR}/"
+cp -pr "gather_tc_aws_costs.py" "${STAGING_DIR}/"
 
 cp -p *.yml "${STAGING_DIR}/"
 
