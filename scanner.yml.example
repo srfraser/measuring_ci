@@ -1,7 +1,0 @@
-pushlog_url: 'https://hg.mozilla.org/{project}/json-pushes?version=2'
-pushlog_cache_file: 's3://mozilla-releng-metrics/measuring_ci/pushlog_cache_{project}.json'
-costs_csv_file: 's3://mozilla-releng-metrics/measuring_ci/aws_cost_estimates.csv'
-costs_scriptworker_csv_file: 's3://mozilla-releng-metrics/measuring_ci/aws_cost_estimates_scriptworker.csv'
-TC_CACHE_DIR: 's3://mozilla-releng-metrics/taskgraph_cache/'
-total_cost_output: 's3://mozilla-releng-metrics/measuring_ci/v2/costs/{project}.parquet'
-daily_totals_output: 's3://mozilla-releng-metrics/measuring_ci/daily_totals/v2/daily_totals/{project}.parquet'

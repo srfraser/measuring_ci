@@ -38,7 +38,7 @@ async def analyze_taskgraph(args, config):
     log.info("Fetching worker costs")
     worker_costs = fetch_all_worker_costs(
         tc_csv_filename=config['costs_csv_file'],
-        scriptworker_csv_filename=config.get('costs_scriptworker_csv_file'),
+        other_csv_filename=config.get('other_costs_csv_file'),
     )
 
     log.info("Calculating costs")

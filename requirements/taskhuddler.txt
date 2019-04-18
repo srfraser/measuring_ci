@@ -1,1 +1,0 @@
--e git+https://github.com/mozilla-releng/taskhuddler#egg=taskhuddler

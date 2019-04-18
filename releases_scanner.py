@@ -86,7 +86,7 @@ async def scan_releases(config):
     log.info('Calculating costs')
     worker_costs = fetch_all_worker_costs(
         tc_csv_filename=config['costs_csv_file'],
-        scriptworker_csv_filename=config.get('costs_scriptworker_csv_file'),
+        other_csv_filename=config.get('other_costs_csv_file'),
     )
     for graph in taskgraphs:
         full_cost, final_runs_cost = taskgraph_cost(graph, worker_costs)

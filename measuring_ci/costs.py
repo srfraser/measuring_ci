@@ -38,10 +38,10 @@ def fetch_worker_costs(csv_filename):
     return df
 
 
-def fetch_all_worker_costs(tc_csv_filename, scriptworker_csv_filename):
+def fetch_all_worker_costs(tc_csv_filename, other_csv_filename=None):
     df = fetch_worker_costs(tc_csv_filename)
-    if scriptworker_csv_filename:
-        sw_df = fetch_worker_costs(scriptworker_csv_filename)
+    if other_csv_filename:
+        sw_df = fetch_worker_costs(other_csv_filename)
         df = df.append(sw_df)
     return df
 

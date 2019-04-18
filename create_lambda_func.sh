@@ -22,6 +22,7 @@ cp -pr "nightly_scanner.py" "${STAGING_DIR}/"
 cp -pr "graph_analyzer.py" "${STAGING_DIR}/"
 cp -pr "parquet_collator.py" "${STAGING_DIR}/"
 cp -pr "gather_tc_aws_costs.py" "${STAGING_DIR}/"
+cp -pr "pushlog_backfill.py" "${STAGING_DIR}/"
 
 cp -p *.yml "${STAGING_DIR}/"
 
@@ -39,7 +40,7 @@ SITE_PACKAGES=$(find ${VENV_NAME} -type d -name site-packages)
 # for the env we upload.
 
 # rsync -av --exclude "*boto*" --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
-rsync -av --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/* "${STAGING_DIR}/"
+rsync -av --exclude "*pip*" --exclude "*ipython*" --exclude "*/tests/*" "${SITE_PACKAGES}"/. "${STAGING_DIR}/"
 for library in $(find "${STAGING_DIR}" -name '*.so')
 do
     strip "${library}"

@@ -1,16 +1,12 @@
 aiohttp
 aiodns
 pandas
-plotly
 python-snappy
 pyarrow
 taskcluster
 boto3
 s3fs
 pyyaml
-# Taskhuddler is required but not yet available as a package
-# -e git+https://github.com/mozilla-releng/taskhuddler#egg=taskhuddler
-
+taskhuddler
 # Required by taskhuddler
 asyncinit
-virtualenv
